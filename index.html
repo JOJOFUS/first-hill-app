@@ -4,9 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Firsthill · tyre stock</title>
-    <!-- Font Awesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <!-- Google Font (Inter) -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -283,7 +281,6 @@
 </head>
 <body>
 <div class="app">
-    <!-- header -->
     <div class="header">
         <div class="logo">
             <h1><i class="fas fa-warehouse"></i> Firsthill stock tracker <span>tyre warehouse</span></h1>
@@ -297,16 +294,14 @@
         </div>
     </div>
 
-    <!-- stats -->
     <div class="stats" id="statsContainer">
         <div class="stat-item"><i class="fas fa-boxes"></i> Total SKU: <strong id="totalSku">0</strong></div>
         <div class="stat-item"><i class="fas fa-cubes"></i> Total QTY: <strong id="totalQty">0</strong></div>
         <div class="stat-item"><i class="fas fa-cloud"></i> Google Sheet: <span id="lastUpdate">loading…</span></div>
     </div>
 
-    <!-- transfer card -->
     <div class="transfer-card">
-        <h3><i class="fas fa-arrow-right-arrow-left"></i> ADD · REMOVE · UPDATE</h3>
+        <h3><i class="fas fa-arrow-right-arrow-left"></i> UPDATE QUANTITY</h3>
         <div class="transfer-grid">
             <div class="transfer-field">
                 <label><i class="fas fa-tag"></i> Brand</label>
@@ -321,19 +316,17 @@
                 <select id="transferFrom"><option value="">— warehouse —</option></select>
             </div>
             <div class="transfer-field">
-                <label><i class="fas fa-arrow-left"></i> Qty ( + / - )</label>
+                <label><i class="fas fa-arrow-left"></i> Qty Change</label>
                 <input type="number" id="transferQty" placeholder="+ add, - remove" value="1" min="-999" step="1">
             </div>
             <button class="btn-transfer" id="transferBtn"><i class="fas fa-pen-to-square"></i> UPDATE</button>
         </div>
         <div style="margin-top: 10px; font-size: 0.8rem; color: #9f5f5f;">
             <i class="fas fa-info-circle"></i> 
-            <strong>Add</strong> (positive) · <strong>Remove</strong> (negative) · 
-            Changes are written directly to Google Sheet.
+            Enter positive number to add, negative to remove
         </div>
     </div>
 
-    <!-- table -->
     <div class="table-wrapper">
         <table id="inventoryTable">
             <thead><tr><th>Brand</th><th>Size</th><th>QTY</th><th>Storeroom</th></tr></thead>
@@ -345,17 +338,14 @@
     <div class="footnote"><i class="fas fa-cloud-upload-alt"></i> FirstHill (pty) ltd · live sync</div>
 </div>
 
-<!-- Toast notification -->
 <div id="toast" class="toast"><i class="fas fa-check-circle"></i> <span id="toastMsg">done</span></div>
 
 <script>
     (function() {
         // ---------- CONFIG ----------
-        // Direct link to the published Google Sheet CSV export
+        // UPDATED: Your new Google Apps Script URL
+        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyywrzouTTE7nxw-oqfzM4oBI0xv1WKZMb83AcojXHvmf34LTiRtJWm86K6pbZqQy41EA/exec';
         const GOOGLE_SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQz7v74B9qEVB0RNbUqxwVMa5Yvnb2GxLPchxtz_8qyQyZWoT-Q0LIBb443JpvRxcKBXzHAzfaARfHG/pub?output=csv';
-
-        // UPDATED: Your new Google Apps Script Web App URL
-        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbykidO89mlx3vM83b4Mr7Ehfh6tuDDru9ukMRyMAFfyRhx3I7J0TgzDf0ZOuCYJ2kxmEw/exec';
 
         let inventory = [];
         let isUpdating = false;
@@ -381,7 +371,6 @@
             toast._timer = setTimeout(() => { toast.style.display = 'none'; }, 4000);
         }
 
-        // ---------- CSV PARSER ----------
         function parseCSV(csvText) {
             const rows = [];
             let row = [], field = '', inQuotes = false;
@@ -433,7 +422,6 @@
             }).filter(item => item.Brand || item.Size || item.Storeroom);
         }
 
-        // ---------- RENDER ----------
         function renderTable() {
             if (!inventory.length) {
                 tbody.innerHTML = `<tr class="empty-row"><td colspan="4"><i class="fas fa-database"></i> no tyre data</td></tr>`;
@@ -490,7 +478,6 @@
             if (currentFrom && whSet.has(currentFrom)) fromSelect.value = currentFrom;
         }
 
-        // ---------- WRITE TO GOOGLE SHEET via APPS SCRIPT ----------
         async function writeToSheet(updatedInventory) {
             try {
                 const formData = new URLSearchParams();
@@ -501,8 +488,8 @@
                     storeroom: row.Storeroom || ''
                 }))));
 
-                console.log('Sending update to sheet:', formData.toString());
-
+                console.log('Sending update to:', APPS_SCRIPT_URL);
+                
                 await fetch(APPS_SCRIPT_URL, {
                     method: 'POST',
                     mode: 'no-cors',
@@ -512,16 +499,15 @@
                     body: formData.toString()
                 });
 
-                showToast('✅ Changes written to Google Sheet');
+                showToast('✅ Update sent to Google Sheet');
                 return true;
             } catch (e) {
                 console.error('Write error:', e);
-                showToast('❌ Failed to update sheet: ' + e.message, true);
+                showToast('❌ Failed to update: ' + e.message, true);
                 return false;
             }
         }
 
-        // ---------- PERFORM UPDATE ----------
         async function performTransfer() {
             if (isUpdating) return;
             
@@ -578,7 +564,6 @@
             transferBtn.innerHTML = '<i class="fas fa-pen-to-square"></i> UPDATE';
         }
 
-        // ---------- LOAD INVENTORY ----------
         async function loadInventoryFromGoogleSheet() {
             try {
                 console.log('Loading from CSV URL:', GOOGLE_SHEET_CSV_URL);
@@ -604,7 +589,6 @@
             }
         }
 
-        // ---------- INIT ----------
         function init() {
             loadInventoryFromGoogleSheet();
             transferBtn.addEventListener('click', performTransfer);
