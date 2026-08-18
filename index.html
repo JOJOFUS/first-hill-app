@@ -301,7 +301,7 @@
     <div class="stats" id="statsContainer">
         <div class="stat-item"><i class="fas fa-boxes"></i> Total SKU: <strong id="totalSku">0</strong></div>
         <div class="stat-item"><i class="fas fa-cubes"></i> Total QTY: <strong id="totalQty">0</strong></div>
-        <div class="stat-item"><i class="fas fa-cloud"></i> Google Sheet: <span id="lastUpdate">loading…</span></div>
+        <div class="stat-item"><i class="fas fa-cloud"></i> Google Sheet: <span id="lastUpdate">---</span></div>
     </div>
 
     <!-- transfer card -->
@@ -338,7 +338,7 @@
         <table id="inventoryTable">
             <thead><tr><th>Brand</th><th>Size</th><th>QTY</th><th>Storeroom</th></tr></thead>
             <tbody id="tableBody">
-                <tr class="empty-row"><td colspan="4"><i class="fas fa-spinner fa-pulse"></i> loading data …</td></tr>
+                <tr class="empty-row"><td colspan="4"><i class="fas fa-database"></i> No tyre data loaded</td></tr>
             </tbody>
         </table>
     </div>
@@ -350,16 +350,12 @@
 
 <script>
     (function() {
-        // ---------- CONFIG ----------
-        // Your main Google Apps Script for updating data
-        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwvMAPh2gh2WITTIvOjohXKJCsLiM3fmimzSJcoBiIPunP68FjHuOZ8mjBRnidlc6e9/exec';
-        
-        // UPDATED: Your new Google Apps Script PROXY with CORS headers!
-        const GOOGLE_SHEET_CSV_URL = 'https://script.google.com/macros/s/AKfycbxhQFnm0l8DTmJ6YBuKyw9TeiTL-pHGJdWUHe2UY4yHRHX8giwLmGxX8f-yHDmNG_fG/exec';
+        // ============================================
+        // All Google Apps Script logic has been removed.
+        // Add your own data loading/update logic here.
+        // ============================================
 
-        let inventory = [];
-        let isUpdating = false;
-
+        // DOM references (kept for your convenience)
         const tbody = document.getElementById('tableBody');
         const totalSkuEl = document.getElementById('totalSku');
         const totalQtyEl = document.getElementById('totalQty');
@@ -372,6 +368,7 @@
         const toast = document.getElementById('toast');
         const toastMsg = document.getElementById('toastMsg');
 
+        // Helper: show toast notification
         function showToast(msg, isError = false) {
             toastMsg.textContent = msg;
             toast.style.display = 'block';
@@ -381,66 +378,31 @@
             toast._timer = setTimeout(() => { toast.style.display = 'none'; }, 4000);
         }
 
-        // ---------- CSV PARSER ----------
-        function parseCSV(csvText) {
-            const rows = [];
-            let row = [], field = '', inQuotes = false;
-            for (let i = 0; i < csvText.length; i++) {
-                const ch = csvText[i];
-                if (ch === '"') {
-                    if (inQuotes && csvText[i + 1] === '"') { field += '"'; i++; }
-                    else { inQuotes = !inQuotes; }
-                } else if (ch === ',' && !inQuotes) {
-                    row.push(field.trim());
-                    field = '';
-                } else if ((ch === '\n' || ch === '\r') && !inQuotes) {
-                    if (ch === '\r' && csvText[i + 1] === '\n') i++;
-                    row.push(field.trim());
-                    field = '';
-                    if (row.some(v => v !== '')) rows.push(row);
-                    row = [];
-                } else {
-                    field += ch;
-                }
-            }
-            if (field !== '' || row.length) {
-                row.push(field.trim());
-                if (row.some(v => v !== '')) rows.push(row);
-            }
-            if (rows.length < 2) return [];
-            const headers = rows[0].map(h => h.trim());
-            return rows.slice(1).map(values => {
-                const obj = {};
-                headers.forEach((h, idx) => {
-                    let val = values[idx] ?? '';
-                    if (h.toLowerCase() === 'qty') {
-                        val = parseInt(String(val).replace(/,/g, ''), 10) || 0;
-                    }
-                    obj[h] = val;
-                });
-                const qtyKey = headers.find(h => h.toLowerCase() === 'qty');
-                const brandKey = headers.find(h => h.toLowerCase() === 'brand');
-                const sizeKey = headers.find(h => h.toLowerCase() === 'size');
-                const storeKey = headers.find(h =>
-                    ['storeroom', 'store room', 'warehouse', 'location'].includes(h.toLowerCase())
-                );
-                return {
-                    Brand: brandKey ? obj[brandKey] : '',
-                    Size: sizeKey ? obj[sizeKey] : '',
-                    QTY: qtyKey ? Number(obj[qtyKey]) || 0 : 0,
-                    Storeroom: storeKey ? obj[storeKey] : ''
-                };
-            }).filter(item => item.Brand || item.Size || item.Storeroom);
+        // Example: Load sample data (replace with your own logic)
+        function loadSampleData() {
+            // Sample inventory data
+            const sampleInventory = [
+                { Brand: 'Michelin', Size: '205/55R16', QTY: 12, Storeroom: 'Op1' },
+                { Brand: 'Bridgestone', Size: '225/45R17', QTY: 8, Storeroom: 'Op2' },
+                { Brand: 'Goodyear', Size: '195/65R15', QTY: 5, Storeroom: 'A1' },
+                { Brand: 'Pirelli', Size: '245/40R18', QTY: 3, Storeroom: 'ShopB' },
+                { Brand: 'Continental', Size: '215/55R16', QTY: 10, Storeroom: 'Op3' }
+            ];
+
+            // Render the sample data
+            renderTable(sampleInventory);
+            showToast('📥 Sample inventory loaded');
         }
 
-        // ---------- RENDER ----------
-        function renderTable() {
-            if (!inventory.length) {
-                tbody.innerHTML = `<tr class="empty-row"><td colspan="4"><i class="fas fa-database"></i> no tyre data</td></tr>`;
-                updateStats();
-                populateSelects();
+        // Render function (kept from original)
+        function renderTable(inventory) {
+            if (!inventory || !inventory.length) {
+                tbody.innerHTML = `<tr class="empty-row"><td colspan="4"><i class="fas fa-database"></i> No tyre data</td></tr>`;
+                updateStats(inventory);
+                populateSelects(inventory);
                 return;
             }
+
             let html = '';
             let totalQty = 0;
             inventory.forEach(item => {
@@ -453,26 +415,35 @@
                 </tr>`;
             });
             tbody.innerHTML = html;
-            totalSkuEl.textContent = inventory.length;
-            totalQtyEl.textContent = totalQty;
+            updateStats(inventory);
+            populateSelects(inventory);
+
             const now = new Date();
             lastUpdateEl.textContent = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-            populateSelects();
         }
 
-        function updateStats() {
-            const totalQty = inventory.reduce((acc, i) => acc + i.QTY, 0);
-            totalSkuEl.textContent = inventory.length;
+        function updateStats(inventory) {
+            const totalQty = inventory ? inventory.reduce((acc, i) => acc + i.QTY, 0) : 0;
+            totalSkuEl.textContent = inventory ? inventory.length : 0;
             totalQtyEl.textContent = totalQty;
         }
 
-        function populateSelects() {
+        function populateSelects(inventory) {
+            if (!inventory || !inventory.length) {
+                brandSelect.innerHTML = '<option value="">— brand —</option>';
+                sizeSelect.innerHTML = '<option value="">— size —</option>';
+                fromSelect.innerHTML = '<option value="">— warehouse —</option>';
+                return;
+            }
+
+            // Brands
             const brandSet = new Set(inventory.map(i => i.Brand));
             const currentBrand = brandSelect.value;
             brandSelect.innerHTML = '<option value="">— brand —</option>' + 
                 Array.from(brandSet).sort().map(b => `<option value="${b}">${b}</option>`).join('');
             if (currentBrand && brandSet.has(currentBrand)) brandSelect.value = currentBrand;
 
+            // Sizes (filtered by brand)
             const selectedBrand = brandSelect.value;
             const sizeSet = new Set();
             inventory.forEach(i => {
@@ -483,6 +454,7 @@
                 Array.from(sizeSet).sort().map(s => `<option value="${s}">${s}</option>`).join('');
             if (currentSize && sizeSet.has(currentSize)) sizeSelect.value = currentSize;
 
+            // Warehouses
             const whSet = new Set(inventory.map(i => i.Storeroom));
             const currentFrom = fromSelect.value;
             fromSelect.innerHTML = '<option value="">— warehouse —</option>' + 
@@ -490,128 +462,29 @@
             if (currentFrom && whSet.has(currentFrom)) fromSelect.value = currentFrom;
         }
 
-        // ---------- WRITE TO GOOGLE SHEET ----------
-        async function writeToSheet(updatedInventory) {
-            try {
-                const formData = new URLSearchParams();
-                formData.append('data', JSON.stringify(updatedInventory.map(row => ({
-                    brand: row.Brand || '',
-                    size: row.Size || '',
-                    qty: parseInt(row.QTY) || 0,
-                    storeroom: row.Storeroom || ''
-                }))));
+        // Placeholder: UPDATE button handler (replace with your own logic)
+        transferBtn.addEventListener('click', function() {
+            showToast('⚠️ Update functionality not implemented in this version', true);
+            console.log('Update button clicked. Brand:', brandSelect.value, 'Size:', sizeSelect.value, 'Warehouse:', fromSelect.value, 'Qty:', qtyInput.value);
+        });
 
-                console.log('Sending update to sheet:', formData.toString());
+        // Initialize with sample data
+        loadSampleData();
 
-                await fetch(APPS_SCRIPT_URL, {
-                    method: 'POST',
-                    mode: 'no-cors',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                    },
-                    body: formData.toString()
-                });
+        // Re-populate selects when brand changes (filter sizes)
+        brandSelect.addEventListener('change', function() {
+            // This would need access to full inventory data
+            // For this demo, we're using the sample data directly
+            const inventory = [
+                { Brand: 'Michelin', Size: '205/55R16', QTY: 12, Storeroom: 'Op1' },
+                { Brand: 'Bridgestone', Size: '225/45R17', QTY: 8, Storeroom: 'Op2' },
+                { Brand: 'Goodyear', Size: '195/65R15', QTY: 5, Storeroom: 'A1' },
+                { Brand: 'Pirelli', Size: '245/40R18', QTY: 3, Storeroom: 'ShopB' },
+                { Brand: 'Continental', Size: '215/55R16', QTY: 10, Storeroom: 'Op3' }
+            ];
+            populateSelects(inventory);
+        });
 
-                showToast('✅ Changes written to Google Sheet');
-                return true;
-            } catch (e) {
-                console.error('Write error:', e);
-                showToast('❌ Failed to update sheet: ' + e.message, true);
-                return false;
-            }
-        }
-
-        // ---------- PERFORM UPDATE ----------
-        async function performTransfer() {
-            if (isUpdating) return;
-            
-            const brand = brandSelect.value;
-            const size = sizeSelect.value;
-            const fromWh = fromSelect.value;
-            const qtyDelta = parseInt(qtyInput.value, 10);
-
-            if (!brand || !size || !fromWh) {
-                showToast('Please select Brand, Size and Warehouse.', true);
-                return;
-            }
-            if (isNaN(qtyDelta) || qtyDelta === 0) {
-                showToast('Enter a valid quantity (positive to add, negative to remove).', true);
-                return;
-            }
-
-            const index = inventory.findIndex(item => 
-                item.Brand === brand && item.Size === size && item.Storeroom === fromWh
-            );
-
-            if (index === -1) {
-                showToast(`❌ No entry found: ${brand} ${size} in ${fromWh}`, true);
-                return;
-            }
-
-            const currentQty = inventory[index].QTY;
-            const newQty = currentQty + qtyDelta;
-            if (newQty < 0) {
-                showToast(`❌ Cannot go below 0. Current: ${currentQty}`, true);
-                return;
-            }
-
-            const oldQty = currentQty;
-            inventory[index].QTY = newQty;
-
-            isUpdating = true;
-            transferBtn.disabled = true;
-            transferBtn.innerHTML = '<i class="fas fa-spinner fa-pulse"></i> syncing…';
-
-            const success = await writeToSheet(inventory);
-
-            if (success) {
-                renderTable();
-                showToast(`✅ ${brand} ${size} in ${fromWh}: ${oldQty} → ${newQty}`);
-            } else {
-                inventory[index].QTY = oldQty;
-                renderTable();
-                showToast('❌ Update failed, changes reverted.', true);
-            }
-
-            isUpdating = false;
-            transferBtn.disabled = false;
-            transferBtn.innerHTML = '<i class="fas fa-pen-to-square"></i> UPDATE';
-        }
-
-        // ---------- LOAD INVENTORY ----------
-        async function loadInventoryFromGoogleSheet() {
-            try {
-                console.log('Loading from proxy:', GOOGLE_SHEET_CSV_URL);
-                const response = await fetch(GOOGLE_SHEET_CSV_URL, { cache: 'no-store' });
-                if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                const csvText = await response.text();
-                console.log('CSV loaded, length:', csvText.length);
-                const parsed = parseCSV(csvText);
-                if (!parsed.length) throw new Error('No data rows found.');
-                inventory = parsed;
-                renderTable();
-                showToast('📥 Inventory loaded from Google Sheet');
-            } catch (error) {
-                console.error('Load error:', error);
-                inventory = [];
-                tbody.innerHTML = `<tr class="empty-row">
-                    <td colspan="4"><i class="fas fa-triangle-exclamation"></i> unable to load Google Sheet data</td>
-                </tr>`;
-                updateStats();
-                populateSelects();
-                lastUpdateEl.textContent = 'Load failed';
-                showToast('❌ Failed to load sheet data: ' + error.message, true);
-            }
-        }
-
-        // ---------- INIT ----------
-        function init() {
-            loadInventoryFromGoogleSheet();
-            transferBtn.addEventListener('click', performTransfer);
-            brandSelect.addEventListener('change', populateSelects);
-        }
-
-        init();
     })();
 </script>
 </body>
