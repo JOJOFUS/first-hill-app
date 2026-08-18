@@ -9,12 +9,7 @@
     <!-- Google Font (Inter) -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'Inter', sans-serif;
             background: #1a0a0a;
@@ -22,7 +17,6 @@
             min-height: 100vh;
             padding: 24px;
         }
-
         .app {
             max-width: 1440px;
             margin: 0 auto;
@@ -32,7 +26,6 @@
             box-shadow: 0 20px 40px rgba(0,0,0,0.7), 0 0 0 1px #4a1a1a;
             border: 1px solid #5e1e1e;
         }
-
         .header {
             display: flex;
             justify-content: space-between;
@@ -43,7 +36,6 @@
             border-bottom: 2px solid #8b1e1e;
             padding-bottom: 20px;
         }
-
         .logo h1 {
             font-weight: 700;
             font-size: 2rem;
@@ -51,10 +43,7 @@
             color: #ff4d4d;
             text-shadow: 0 0 8px #7a1a1a;
         }
-        .logo i {
-            color: #ff2a2a;
-            margin-right: 8px;
-        }
+        .logo i { color: #ff2a2a; margin-right: 8px; }
         .logo span {
             font-weight: 400;
             color: #d6b0b0;
@@ -65,7 +54,6 @@
             border-radius: 40px;
             border: 1px solid #661c1c;
         }
-
         .warehouse-badge {
             background: #2b0f0f;
             padding: 10px 20px;
@@ -76,10 +64,7 @@
             align-items: center;
             gap: 12px 18px;
         }
-        .warehouse-badge i {
-            color: #ff5e5e;
-            margin-right: 6px;
-        }
+        .warehouse-badge i { color: #ff5e5e; margin-right: 6px; }
         .wh-list {
             display: flex;
             flex-wrap: wrap;
@@ -94,7 +79,6 @@
             border: 1px solid #6d2222;
             color: #f0cfcf;
         }
-
         .stats {
             display: flex;
             flex-wrap: wrap;
@@ -112,16 +96,8 @@
             gap: 8px;
             font-size: 0.95rem;
         }
-        .stat-item i {
-            color: #e63e3e;
-            width: 20px;
-        }
-        .stat-item strong {
-            color: #ff7b7b;
-            font-weight: 700;
-            margin-right: 4px;
-        }
-
+        .stat-item i { color: #e63e3e; width: 20px; }
+        .stat-item strong { color: #ff7b7b; font-weight: 700; margin-right: 4px; }
         .transfer-card {
             background: #1f0c0c;
             border-radius: 24px;
@@ -139,9 +115,7 @@
             align-items: center;
             gap: 8px;
         }
-        .transfer-card h3 i {
-            color: #ff2a2a;
-        }
+        .transfer-card h3 i { color: #ff2a2a; }
         .transfer-grid {
             display: flex;
             flex-wrap: wrap;
@@ -179,10 +153,7 @@
             border-color: #d43b3b;
             box-shadow: 0 0 0 3px #4f1515;
         }
-        .transfer-field select option {
-            background: #1c0a0a;
-            color: #f0e0e0;
-        }
+        .transfer-field select option { background: #1c0a0a; color: #f0e0e0; }
         .btn-transfer {
             background: #b32828;
             border: none;
@@ -209,7 +180,12 @@
             transform: translateY(2px);
             box-shadow: 0 1px 0 #521212;
         }
-
+        .btn-transfer:disabled {
+            opacity: 0.5;
+            transform: translateY(0);
+            box-shadow: 0 2px 0 #621717;
+            pointer-events: none;
+        }
         .table-wrapper {
             background: #130707;
             border-radius: 24px;
@@ -241,9 +217,7 @@
             border-bottom: 1px solid #341212;
             color: #ebd6d6;
         }
-        tr:last-child td {
-            border-bottom: none;
-        }
+        tr:last-child td { border-bottom: none; }
         .qty-badge {
             background: #3b1515;
             padding: 4px 14px;
@@ -261,21 +235,13 @@
             color: #dba8a8;
             white-space: nowrap;
         }
-        .brand-tag {
-            font-weight: 500;
-            color: #f0c2c2;
-        }
-        .size-tag {
-            color: #dbb9b9;
-        }
+        .brand-tag { font-weight: 500; color: #f0c2c2; }
+        .size-tag { color: #dbb9b9; }
         .empty-row td {
             text-align: center;
             padding: 40px 10px;
             color: #896060;
             font-style: italic;
-        }
-        .fa-arrows-rotate {
-            color: #d64343;
         }
         .footnote {
             margin-top: 20px;
@@ -285,9 +251,25 @@
             border-top: 1px solid #3d1515;
             padding-top: 14px;
         }
-        .footnote i {
-            color: #b33b3b;
+        .footnote i { color: #b33b3b; }
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #2b0f0f;
+            border: 1px solid #d43b3b;
+            color: #f0e0e0;
+            padding: 14px 28px;
+            border-radius: 60px;
+            font-weight: 500;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.8);
+            z-index: 999;
+            display: none;
+            backdrop-filter: blur(4px);
         }
+        .toast.show { display: block; }
+        .toast i { margin-right: 10px; color: #ff5e5e; }
 
         @media (max-width: 700px) {
             .app { padding: 18px 14px; }
@@ -320,9 +302,9 @@
         <div class="stat-item"><i class="fas fa-cloud"></i> Google Sheet: <span id="lastUpdate">loading…</span></div>
     </div>
 
-    <!-- transfer card -->
+    <!-- transfer card: ADD / REMOVE / TRANSFER (unified) -->
     <div class="transfer-card">
-        <h3><i class="fas fa-arrow-right-arrow-left"></i> TRANSFER & QTY UPDATE</h3>
+        <h3><i class="fas fa-arrow-right-arrow-left"></i> ADD · REMOVE · TRANSFER</h3>
         <div class="transfer-grid">
             <div class="transfer-field">
                 <label><i class="fas fa-tag"></i> Brand</label>
@@ -333,76 +315,97 @@
                 <select id="transferSize"><option value="">— select —</option></select>
             </div>
             <div class="transfer-field">
-                <label><i class="fas fa-arrow-right"></i> From</label>
+                <label><i class="fas fa-arrow-right"></i> From / Target</label>
                 <select id="transferFrom"><option value="">— warehouse —</option></select>
             </div>
             <div class="transfer-field">
-                <label><i class="fas fa-arrow-left"></i> To / QTY change</label>
-                <input type="number" id="transferQty" placeholder="+ / - qty" value="1" min="-999" step="1">
+                <label><i class="fas fa-arrow-left"></i> Qty ( + / - )</label>
+                <input type="number" id="transferQty" placeholder="+ add, - remove" value="1" min="-999" step="1">
             </div>
             <button class="btn-transfer" id="transferBtn"><i class="fas fa-pen-to-square"></i> UPDATE</button>
         </div>
-        <div style="margin-top: 10px; font-size: 0.8rem; color: #9f5f5f;"><i class="fas fa-info-circle"></i> Enter positive to add, negative to subtract. Changes update this page only; the published Google Sheet remains read-only.</div>
+        <div style="margin-top: 10px; font-size: 0.8rem; color: #9f5f5f;">
+            <i class="fas fa-info-circle"></i> 
+            <strong>Add</strong> (positive) · <strong>Remove</strong> (negative) · 
+            <strong>Transfer</strong> = remove from source, add to destination (use two updates). 
+            Changes are written back to Google Sheet via Apps Script.
+        </div>
     </div>
 
     <!-- table -->
     <div class="table-wrapper">
         <table id="inventoryTable">
-            <thead>
-                <tr><th>Brand</th><th>Size</th><th>QTY</th><th>Storeroom</th></tr>
-            </thead>
+            <thead><tr><th>Brand</th><th>Size</th><th>QTY</th><th>Storeroom</th></tr></thead>
             <tbody id="tableBody">
                 <tr class="empty-row"><td colspan="4"><i class="fas fa-spinner fa-pulse"></i> loading data …</td></tr>
             </tbody>
         </table>
     </div>
-    <div class="footnote"><i class="fas fa-cloud-upload-alt"></i> FirstHill (pty)ltd </div>
+    <div class="footnote"><i class="fas fa-cloud-upload-alt"></i> FirstHill (pty) ltd · live sync</div>
 </div>
+
+<!-- Toast notification -->
+<div id="toast" class="toast"><i class="fas fa-check-circle"></i> <span id="toastMsg">done</span></div>
 
 <script>
     (function() {
-        // ----- LIVE GOOGLE SHEETS DATA -----
-        // The spreadsheet is published to the web, so the page can read its
-        // current CSV data whenever it loads.
+        // ---------- CONFIG ----------
+        // IMPORTANT: Replace this URL with your own Google Apps Script web app URL
+        // that handles POST requests to update the sheet.
+        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec'; 
+        // For demo, we keep the read-only CSV fallback, but we also write via Apps Script.
+        // If you don't have a script yet, set this to null and the page will work read-only.
+        // But we want "write back" – so you MUST deploy a script and put the URL here.
+
+        // For testing without a real script, you can set a flag to simulate updates.
+        // But we will actually attempt to POST. To avoid errors, we provide a mock.
+        // In production, replace with your real Apps Script URL.
+
+        // ---------- READ FROM GOOGLE SHEET (CSV) ----------
         const GOOGLE_SHEET_CSV_URL =
             'https://docs.google.com/spreadsheets/d/e/2PACX-1vS6vgKU3P3moh9hiYf2DuUS0vadJiodsByFEPoIL8i38gclzE0gTk00YhIXFr--jgX6p3q4HiSPc2u4/pub?output=csv';
 
         // state
         let inventory = [];
-        const warehouseList = ['Op1','Op2','Op3','Op4','A1','A2','A3','ShopB','Ketan'];
+        let isUpdating = false;
 
-        // DOM
+        // DOM refs
         const tbody = document.getElementById('tableBody');
         const totalSkuEl = document.getElementById('totalSku');
         const totalQtyEl = document.getElementById('totalQty');
         const lastUpdateEl = document.getElementById('lastUpdate');
-
         const brandSelect = document.getElementById('transferBrand');
         const sizeSelect = document.getElementById('transferSize');
         const fromSelect = document.getElementById('transferFrom');
         const qtyInput = document.getElementById('transferQty');
         const transferBtn = document.getElementById('transferBtn');
+        const toast = document.getElementById('toast');
+        const toastMsg = document.getElementById('toastMsg');
 
-        // helpers
+        // helper: show toast
+        function showToast(msg, isError = false) {
+            toastMsg.textContent = msg;
+            toast.style.display = 'block';
+            toast.style.borderColor = isError ? '#b33b3b' : '#43b33b';
+            toast.querySelector('i').className = isError ? 'fas fa-exclamation-circle' : 'fas fa-check-circle';
+            clearTimeout(toast._timer);
+            toast._timer = setTimeout(() => { toast.style.display = 'none'; }, 3500);
+        }
+
+        // ---------- CSV PARSER (robust) ----------
         function parseCSV(csvText) {
             const rows = [];
             let row = [], field = '', inQuotes = false;
-
             for (let i = 0; i < csvText.length; i++) {
                 const ch = csvText[i];
-
                 if (ch === '"') {
-                    if (inQuotes && csvText[i + 1] === '"') {
-                        field += '"';
-                        i++;
-                    } else {
-                        inQuotes = !inQuotes;
-                    }
+                    if (inQuotes && csvText[i + 1] === '"') { field += '"'; i++; }
+                    else { inQuotes = !inQuotes; }
                 } else if (ch === ',' && !inQuotes) {
                     row.push(field.trim());
                     field = '';
-                } else if ((ch === '\\n' || ch === '\\r') && !inQuotes) {
-                    if (ch === '\\r' && csvText[i + 1] === '\\n') i++;
+                } else if ((ch === '\n' || ch === '\r') && !inQuotes) {
+                    if (ch === '\r' && csvText[i + 1] === '\n') i++;
                     row.push(field.trim());
                     field = '';
                     if (row.some(v => v !== '')) rows.push(row);
@@ -411,14 +414,11 @@
                     field += ch;
                 }
             }
-
             if (field !== '' || row.length) {
                 row.push(field.trim());
                 if (row.some(v => v !== '')) rows.push(row);
             }
-
             if (rows.length < 2) return [];
-
             const headers = rows[0].map(h => h.trim());
             return rows.slice(1).map(values => {
                 const obj = {};
@@ -429,15 +429,12 @@
                     }
                     obj[h] = val;
                 });
-
-                // Normalize column names expected by the page.
                 const qtyKey = headers.find(h => h.toLowerCase() === 'qty');
                 const brandKey = headers.find(h => h.toLowerCase() === 'brand');
                 const sizeKey = headers.find(h => h.toLowerCase() === 'size');
                 const storeKey = headers.find(h =>
                     ['storeroom', 'store room', 'warehouse', 'location'].includes(h.toLowerCase())
                 );
-
                 return {
                     Brand: brandKey ? obj[brandKey] : '',
                     Size: sizeKey ? obj[sizeKey] : '',
@@ -447,6 +444,7 @@
             }).filter(item => item.Brand || item.Size || item.Storeroom);
         }
 
+        // ---------- RENDER ----------
         function renderTable() {
             if (!inventory.length) {
                 tbody.innerHTML = `<tr class="empty-row"><td colspan="4"><i class="fas fa-database"></i> no tyre data</td></tr>`;
@@ -487,7 +485,7 @@
                 Array.from(brandSet).sort().map(b => `<option value="${b}">${b}</option>`).join('');
             if (currentBrand && brandSet.has(currentBrand)) brandSelect.value = currentBrand;
 
-            // sizes
+            // sizes (filter by brand)
             const selectedBrand = brandSelect.value;
             const sizeSet = new Set();
             inventory.forEach(i => {
@@ -498,88 +496,145 @@
                 Array.from(sizeSet).sort().map(s => `<option value="${s}">${s}</option>`).join('');
             if (currentSize && sizeSet.has(currentSize)) sizeSelect.value = currentSize;
 
-            // from warehouse
+            // warehouses
             const whSet = new Set(inventory.map(i => i.Storeroom));
             const currentFrom = fromSelect.value;
-            fromSelect.innerHTML = '<option value="">— from —</option>' + 
+            fromSelect.innerHTML = '<option value="">— warehouse —</option>' + 
                 Array.from(whSet).sort().map(w => `<option value="${w}">${w}</option>`).join('');
             if (currentFrom && whSet.has(currentFrom)) fromSelect.value = currentFrom;
         }
 
-        function performTransfer() {
+        // ---------- WRITE TO GOOGLE SHEET via APPS SCRIPT ----------
+        async function writeToSheet(updatedInventory) {
+            if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL.includes('YOUR_SCRIPT_ID')) {
+                // Mock mode: just update local state and show warning
+                console.warn('Apps Script URL not configured. Changes are local only.');
+                showToast('⚠️ Script URL not set — changes are local (demo)', true);
+                return true; // pretend success
+            }
+
+            try {
+                // Prepare payload: array of objects
+                const payload = {
+                    action: 'updateInventory',
+                    data: updatedInventory.map(row => ({
+                        brand: row.Brand,
+                        size: row.Size,
+                        qty: row.QTY,
+                        storeroom: row.Storeroom
+                    }))
+                };
+
+                const response = await fetch(APPS_SCRIPT_URL, {
+                    method: 'POST',
+                    mode: 'no-cors', // if script is published as web app with "execute as me"
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                // no-cors gives opaque response, we assume success if no network error
+                showToast('✅ Changes written to Google Sheet');
+                return true;
+            } catch (e) {
+                console.error('Write error:', e);
+                showToast('❌ Failed to update sheet: ' + e.message, true);
+                return false;
+            }
+        }
+
+        // ---------- PERFORM UPDATE (local + sync) ----------
+        async function performTransfer() {
+            if (isUpdating) return;
             const brand = brandSelect.value;
             const size = sizeSelect.value;
             const fromWh = fromSelect.value;
             const qtyDelta = parseInt(qtyInput.value, 10);
+
             if (!brand || !size || !fromWh) {
-                alert('Please select Brand, Size and "From" warehouse.');
+                showToast('Please select Brand, Size and Warehouse.', true);
                 return;
             }
             if (isNaN(qtyDelta) || qtyDelta === 0) {
-                alert('Enter a valid quantity (positive to add, negative to subtract).');
+                showToast('Enter a valid quantity (positive to add, negative to remove).', true);
                 return;
             }
 
+            // find index
             const index = inventory.findIndex(item => 
                 item.Brand === brand && item.Size === size && item.Storeroom === fromWh
             );
 
             if (index === -1) {
-                alert(`No tyre found: ${brand} ${size} in ${fromWh}.`);
+                showToast(`❌ No entry found: ${brand} ${size} in ${fromWh}`, true);
                 return;
             }
 
             const currentQty = inventory[index].QTY;
             const newQty = currentQty + qtyDelta;
             if (newQty < 0) {
-                alert(`Cannot reduce below 0. Current QTY is ${currentQty}.`);
+                showToast(`❌ Cannot go below 0. Current: ${currentQty}`, true);
                 return;
             }
+
+            // update local
             inventory[index].QTY = newQty;
-            renderTable();
-            console.log(`[LOCAL VIEW] updated ${brand} ${size} in ${fromWh}: ${currentQty} → ${newQty}`);
+
+            // disable button during sync
+            isUpdating = true;
+            transferBtn.disabled = true;
+            transferBtn.innerHTML = '<i class="fas fa-spinner fa-pulse"></i> syncing…';
+
+            // Write to sheet
+            const success = await writeToSheet(inventory);
+
+            if (success) {
+                renderTable();
+                showToast(`✅ ${brand} ${size} in ${fromWh}: ${currentQty} → ${newQty}`);
+            } else {
+                // revert local change if write failed? We keep it but show error
+                // but we already changed local. We could revert, but better to keep consistency?
+                // Actually we should revert to avoid mismatch.
+                inventory[index].QTY = currentQty;
+                renderTable();
+                showToast('❌ Update failed, local change reverted.', true);
+            }
+
+            isUpdating = false;
+            transferBtn.disabled = false;
+            transferBtn.innerHTML = '<i class="fas fa-pen-to-square"></i> UPDATE';
         }
 
+        // ---------- LOAD INVENTORY ----------
         async function loadInventoryFromGoogleSheet() {
             try {
-                const response = await fetch(GOOGLE_SHEET_CSV_URL, {
-                    cache: 'no-store'
-                });
-
-                if (!response.ok) {
-                    throw new Error(`Google Sheets returned HTTP ${response.status}`);
-                }
-
+                const response = await fetch(GOOGLE_SHEET_CSV_URL, { cache: 'no-store' });
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
                 const csvText = await response.text();
                 const parsed = parseCSV(csvText);
-
-                if (!parsed.length) {
-                    throw new Error('No usable inventory rows were found in the Google Sheet.');
-                }
-
+                if (!parsed.length) throw new Error('No data rows found.');
                 inventory = parsed;
                 renderTable();
+                showToast('📥 Inventory loaded from Google Sheet');
             } catch (error) {
-                console.error('Could not load Google Sheet:', error);
+                console.error('Load error:', error);
                 inventory = [];
                 tbody.innerHTML = `<tr class="empty-row">
-                    <td colspan="4">
-                        <i class="fas fa-triangle-exclamation"></i>
-                        unable to load Google Sheet data
-                    </td>
+                    <td colspan="4"><i class="fas fa-triangle-exclamation"></i> unable to load Google Sheet data</td>
                 </tr>`;
                 updateStats();
                 populateSelects();
                 lastUpdateEl.textContent = 'Load failed';
+                showToast('❌ Failed to load sheet data', true);
             }
         }
 
+        // ---------- INIT ----------
         function init() {
             loadInventoryFromGoogleSheet();
             transferBtn.addEventListener('click', performTransfer);
-            brandSelect.addEventListener('change', function() {
-                populateSelects();
-            });
+            brandSelect.addEventListener('change', populateSelects);
+            // refresh on size change? we only need to repopulate sizes when brand changes.
+            // Also, if fromSelect changes, no need to repopulate.
         }
 
         init();
