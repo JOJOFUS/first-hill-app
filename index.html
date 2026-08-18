@@ -353,9 +353,9 @@
         // ---------- CONFIG ----------
         const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwvMAPh2gh2WITTIvOjohXKJCsLiM3fmimzSJcoBiIPunP68FjHuOZ8mjBRnidlc6e9/exec';
         
-        // FIXED: Use corsproxy.io instead of allorigins.win
+        // OPTION 2: Using thingproxy.freeboard.io
         const GOOGLE_SHEET_CSV_URL =
-            'https://corsproxy.io/?' + encodeURIComponent('https://docs.google.com/spreadsheets/d/e/2PACX-1vS6vgKU3P3moh9hiYf2DuUS0vadJiodsByFEPoIL8i38gclzE0gTk00YhIXFr--jgX6p3q4HiSPc2u4/pub?output=csv');
+            'https://thingproxy.freeboard.io/fetch/' + encodeURIComponent('https://docs.google.com/spreadsheets/d/e/2PACX-1vS6vgKU3P3moh9hiYf2DuUS0vadJiodsByFEPoIL8i38gclzE0gTk00YhIXFr--jgX6p3q4HiSPc2u4/pub?output=csv');
 
         let inventory = [];
         let isUpdating = false;
