@@ -351,8 +351,8 @@
 <script>
     (function() {
         // ---------- CONFIG ----------
-        // Your Google Apps Script Web App URL
-        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzXbDfRsKuuUo5JV1fI01Xk-OtgZY2YHR-7ZzUbP1CXGQG0_o-tJRFyyhjNsxEseLXX/exec';
+        // UPDATED: Your new Google Apps Script Web App URL
+        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxI02_T2H6bpjheQRu7GfPilBJCjt4bVjTycjd2m0gFYHvTFWH4P8CeyIhgU1CcaiXS/exec';
         
         // READ-ONLY CSV URL (for loading data)
         const GOOGLE_SHEET_CSV_URL =
@@ -498,6 +498,7 @@
         }
 
         // ---------- WRITE TO GOOGLE SHEET via APPS SCRIPT ----------
+        // UPDATED: Uses 'cors' mode and proper response handling
         async function writeToSheet(updatedInventory) {
             try {
                 const payload = {
@@ -511,13 +512,20 @@
 
                 const response = await fetch(APPS_SCRIPT_URL, {
                     method: 'POST',
-                    mode: 'no-cors',
-                    headers: { 'Content-Type': 'application/json' },
+                    mode: 'cors', // Changed from 'no-cors' to 'cors'
+                    headers: { 
+                        'Content-Type': 'application/json',
+                    },
                     body: JSON.stringify(payload)
                 });
 
-                // With no-cors, we can't read the response
-                // But if we get here without error, it likely worked
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`HTTP ${response.status}: ${errorText}`);
+                }
+
+                const result = await response.json();
+                console.log('Update successful:', result);
                 showToast('✅ Changes written to Google Sheet');
                 return true;
             } catch (e) {
