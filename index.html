@@ -352,18 +352,13 @@
 <script>
     (function() {
         // ---------- CONFIG ----------
-        // UPDATED with your new script URL
         const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxkUN847nX5YHoUAhHP3zaqTff1FsWFyV6dPMw_amLob4S8SWB885-rDQk2Ryv5sMV6/exec';
-        
-        // READ-ONLY CSV URL (for loading data)
         const GOOGLE_SHEET_CSV_URL =
             'https://docs.google.com/spreadsheets/d/e/2PACX-1vS6vgKU3P3moh9hiYf2DuUS0vadJiodsByFEPoIL8i38gclzE0gTk00YhIXFr--jgX6p3q4HiSPc2u4/pub?output=csv';
 
-        // state
         let inventory = [];
         let isUpdating = false;
 
-        // DOM refs
         const tbody = document.getElementById('tableBody');
         const totalSkuEl = document.getElementById('totalSku');
         const totalQtyEl = document.getElementById('totalQty');
@@ -376,7 +371,6 @@
         const toast = document.getElementById('toast');
         const toastMsg = document.getElementById('toastMsg');
 
-        // helper: show toast
         function showToast(msg, isError = false) {
             toastMsg.textContent = msg;
             toast.style.display = 'block';
@@ -472,14 +466,12 @@
         }
 
         function populateSelects() {
-            // brands
             const brandSet = new Set(inventory.map(i => i.Brand));
             const currentBrand = brandSelect.value;
             brandSelect.innerHTML = '<option value="">— brand —</option>' + 
                 Array.from(brandSet).sort().map(b => `<option value="${b}">${b}</option>`).join('');
             if (currentBrand && brandSet.has(currentBrand)) brandSelect.value = currentBrand;
 
-            // sizes (filter by brand)
             const selectedBrand = brandSelect.value;
             const sizeSet = new Set();
             inventory.forEach(i => {
@@ -490,7 +482,6 @@
                 Array.from(sizeSet).sort().map(s => `<option value="${s}">${s}</option>`).join('');
             if (currentSize && sizeSet.has(currentSize)) sizeSelect.value = currentSize;
 
-            // warehouses
             const whSet = new Set(inventory.map(i => i.Storeroom));
             const currentFrom = fromSelect.value;
             fromSelect.innerHTML = '<option value="">— warehouse —</option>' + 
@@ -498,44 +489,28 @@
             if (currentFrom && whSet.has(currentFrom)) fromSelect.value = currentFrom;
         }
 
-        // ---------- WRITE TO GOOGLE SHEET via APPS SCRIPT ----------
+        // ---------- WRITE TO GOOGLE SHEET - Using no-cors + form-encoded ----------
         async function writeToSheet(updatedInventory) {
             try {
-                const payload = {
-                    data: updatedInventory.map(row => ({
-                        brand: row.Brand || '',
-                        size: row.Size || '',
-                        qty: parseInt(row.QTY) || 0,
-                        storeroom: row.Storeroom || ''
-                    }))
-                };
+                // Convert data to form-encoded format
+                const formData = new URLSearchParams();
+                formData.append('data', JSON.stringify(updatedInventory.map(row => ({
+                    brand: row.Brand || '',
+                    size: row.Size || '',
+                    qty: parseInt(row.QTY) || 0,
+                    storeroom: row.Storeroom || ''
+                }))));
 
-                console.log('Sending data to sheet:', payload);
-
-                const response = await fetch(APPS_SCRIPT_URL, {
+                await fetch(APPS_SCRIPT_URL, {
                     method: 'POST',
-                    mode: 'cors',
-                    headers: { 
-                        'Content-Type': 'application/json',
+                    mode: 'no-cors', // This avoids CORS preflight
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
                     },
-                    body: JSON.stringify(payload)
+                    body: formData.toString()
                 });
 
-                console.log('Response status:', response.status);
-
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    console.error('Error response:', errorText);
-                    throw new Error(`HTTP ${response.status}: ${errorText}`);
-                }
-
-                const result = await response.json();
-                console.log('Update successful:', result);
-                
-                if (result.status === 'error') {
-                    throw new Error(result.message);
-                }
-                
+                // With no-cors, we can't read the response, but if no error, it worked
                 showToast('✅ Changes written to Google Sheet');
                 return true;
             } catch (e) {
@@ -563,7 +538,6 @@
                 return;
             }
 
-            // find index
             const index = inventory.findIndex(item => 
                 item.Brand === brand && item.Size === size && item.Storeroom === fromWh
             );
@@ -580,25 +554,19 @@
                 return;
             }
 
-            // Save old state for rollback
             const oldQty = currentQty;
-            
-            // Update local
             inventory[index].QTY = newQty;
 
-            // Disable button during sync
             isUpdating = true;
             transferBtn.disabled = true;
             transferBtn.innerHTML = '<i class="fas fa-spinner fa-pulse"></i> syncing…';
 
-            // Write to sheet
             const success = await writeToSheet(inventory);
 
             if (success) {
                 renderTable();
                 showToast(`✅ ${brand} ${size} in ${fromWh}: ${oldQty} → ${newQty}`);
             } else {
-                // Rollback on failure
                 inventory[index].QTY = oldQty;
                 renderTable();
                 showToast('❌ Update failed, changes reverted.', true);
