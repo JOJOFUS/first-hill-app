@@ -478,26 +478,36 @@
             if (currentFrom && whSet.has(currentFrom)) fromSelect.value = currentFrom;
         }
 
-        async function writeToSheet(updatedInventory) {
+        async function writeRowToSheet(brand, size, storeroom, newQty) {
             try {
                 const formData = new URLSearchParams();
-                formData.append('data', JSON.stringify(updatedInventory.map(row => ({
-                    brand: row.Brand || '',
-                    size: row.Size || '',
-                    qty: parseInt(row.QTY) || 0,
-                    storeroom: row.Storeroom || ''
-                }))));
+                formData.append('action', 'updateQty');
+                formData.append('brand', brand || '');
+                formData.append('size', size || '');
+                formData.append('storeroom', storeroom || '');
+                formData.append('qty', String(parseInt(newQty, 10) || 0));
 
-                console.log('Sending update to:', APPS_SCRIPT_URL);
-                
-                await fetch(APPS_SCRIPT_URL, {
+                console.log('Sending single-row update to:', APPS_SCRIPT_URL, {
+                    brand, size, storeroom, qty: newQty
+                });
+
+                const response = await fetch(APPS_SCRIPT_URL, {
                     method: 'POST',
-                    mode: 'no-cors',
                     headers: {
                         'Content-Type': 'application/x-www-form-urlencoded',
                     },
                     body: formData.toString()
                 });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+
+                const result = await response.json();
+
+                if (result.status !== 'success') {
+                    throw new Error(result.message || 'Apps Script reported an error');
+                }
 
                 showToast('✅ Update sent to Google Sheet');
                 return true;
@@ -548,7 +558,7 @@
             transferBtn.disabled = true;
             transferBtn.innerHTML = '<i class="fas fa-spinner fa-pulse"></i> syncing…';
 
-            const success = await writeToSheet(inventory);
+            const success = await writeRowToSheet(brand, size, fromWh, newQty);
 
             if (success) {
                 renderTable();
@@ -598,5 +608,94 @@
         init();
     })();
 </script>
+
+<!--
+    ============================================================
+    GOOGLE APPS SCRIPT (paste this into Extensions > Apps Script
+    on the Google Sheet, then Deploy > New deployment > Web app)
+    ============================================================
+
+    Deploy settings:
+      - Execute as: Me
+      - Who has access: Anyone
+    Then copy the resulting /exec URL into APPS_SCRIPT_URL above.
+
+    Note: the page now fetches this WITHOUT mode:'no-cors', so it can read
+    the real JSON {status, message} response. Apps Script Web Apps allow
+    this for simple POST requests (form-urlencoded body, no custom headers)
+    without any extra CORS config needed on your end.
+
+    function doPost(e) {
+      try {
+        const params = e.parameter || {};
+
+        if (params.action !== 'updateQty') {
+          throw new Error('Unknown or missing action: ' + params.action);
+        }
+
+        const brand = (params.brand || '').trim();
+        const size = (params.size || '').trim();
+        const storeroom = (params.storeroom || '').trim();
+        const qty = parseInt(params.qty, 10);
+
+        if (!brand || !size || !storeroom || isNaN(qty)) {
+          throw new Error('Missing or invalid fields: ' + JSON.stringify(params));
+        }
+
+        const ss = SpreadsheetApp.getActiveSpreadsheet();
+        const sheet = ss.getActiveSheet();
+
+        const values = sheet.getDataRange().getValues();
+        const headers = values[0].map(h => String(h).trim().toLowerCase());
+
+        const brandCol = headers.indexOf('brand');
+        const sizeCol = headers.indexOf('size');
+        const qtyCol = headers.indexOf('qty');
+        const storeCol = headers.findIndex(h =>
+          ['storeroom', 'store room', 'warehouse', 'location'].includes(h)
+        );
+
+        if (brandCol === -1 || sizeCol === -1 || qtyCol === -1 || storeCol === -1) {
+          throw new Error('Could not find required columns in headers: ' + headers.join(', '));
+        }
+
+        let rowIndex = -1;
+        for (let i = 1; i < values.length; i++) {
+          if (
+            String(values[i][brandCol]).trim() === brand &&
+            String(values[i][sizeCol]).trim() === size &&
+            String(values[i][storeCol]).trim() === storeroom
+          ) {
+            rowIndex = i;
+            break;
+          }
+        }
+
+        if (rowIndex === -1) {
+          const newRow = [];
+          newRow[brandCol] = brand;
+          newRow[sizeCol] = size;
+          newRow[qtyCol] = qty;
+          newRow[storeCol] = storeroom;
+          sheet.appendRow(newRow);
+          return ContentService
+            .createTextOutput(JSON.stringify({ status: 'success', action: 'inserted' }))
+            .setMimeType(ContentService.MimeType.JSON);
+        }
+
+        sheet.getRange(rowIndex + 1, qtyCol + 1).setValue(qty);
+
+        return ContentService
+          .createTextOutput(JSON.stringify({ status: 'success', action: 'updated', row: rowIndex + 1 }))
+          .setMimeType(ContentService.MimeType.JSON);
+
+      } catch (error) {
+        return ContentService
+          .createTextOutput(JSON.stringify({ status: 'error', message: error.toString() }))
+          .setMimeType(ContentService.MimeType.JSON);
+      }
+    }
+    ============================================================
+-->
 </body>
 </html>
