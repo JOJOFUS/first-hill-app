@@ -354,6 +354,9 @@
         // Direct link to the published Google Sheet CSV export
         const GOOGLE_SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQz7v74B9qEVB0RNbUqxwVMa5Yvnb2GxLPchxtz_8qyQyZWoT-Q0LIBb443JpvRxcKBXzHAzfaARfHG/pub?output=csv';
 
+        // UPDATED: Your new Google Apps Script Web App URL
+        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbykidO89mlx3vM83b4Mr7Ehfh6tuDDru9ukMRyMAFfyRhx3I7J0TgzDf0ZOuCYJ2kxmEw/exec';
+
         let inventory = [];
         let isUpdating = false;
 
@@ -488,10 +491,6 @@
         }
 
         // ---------- WRITE TO GOOGLE SHEET via APPS SCRIPT ----------
-        // NOTE: This still requires a Google Apps Script to handle the update.
-        // Replace this URL with your own Apps Script deployment URL.
-        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwvMAPh2gh2WITTIvOjohXKJCsLiM3fmimzSJcoBiIPunP68FjHuOZ8mjBRnidlc6e9/exec';
-
         async function writeToSheet(updatedInventory) {
             try {
                 const formData = new URLSearchParams();
