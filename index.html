@@ -9,6 +9,7 @@
     <!-- Google Font (Inter) -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
     <style>
+        /* ... (your existing styles, unchanged) ... */
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'Inter', sans-serif;
@@ -351,12 +352,11 @@
 <script>
     (function() {
         // ---------- CONFIG ----------
-        // UPDATED with your new script URL
         const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwvMAPh2gh2WITTIvOjohXKJCsLiM3fmimzSJcoBiIPunP68FjHuOZ8mjBRnidlc6e9/exec';
         
-        // READ-ONLY CSV URL (for loading data)
+        // FIXED: Use a CORS proxy to load the CSV
         const GOOGLE_SHEET_CSV_URL =
-            'https://docs.google.com/spreadsheets/d/e/2PACX-1vS6vgKU3P3moh9hiYf2DuUS0vadJiodsByFEPoIL8i38gclzE0gTk00YhIXFr--jgX6p3q4HiSPc2u4/pub?output=csv';
+            'https://api.allorigins.win/raw?url=' + encodeURIComponent('https://docs.google.com/spreadsheets/d/e/2PACX-1vS6vgKU3P3moh9hiYf2DuUS0vadJiodsByFEPoIL8i38gclzE0gTk00YhIXFr--jgX6p3q4HiSPc2u4/pub?output=csv');
 
         let inventory = [];
         let isUpdating = false;
@@ -491,7 +491,7 @@
             if (currentFrom && whSet.has(currentFrom)) fromSelect.value = currentFrom;
         }
 
-        // ---------- WRITE TO GOOGLE SHEET - Using no-cors + form-encoded ----------
+        // ---------- WRITE TO GOOGLE SHEET ----------
         async function writeToSheet(updatedInventory) {
             try {
                 const formData = new URLSearchParams();
@@ -502,7 +502,6 @@
                     storeroom: row.Storeroom || ''
                 }))));
 
-                // Log what we're sending (visible in browser console)
                 console.log('Sending update to sheet:', formData.toString());
 
                 await fetch(APPS_SCRIPT_URL, {
@@ -514,8 +513,6 @@
                     body: formData.toString()
                 });
 
-                // With no-cors, we can't read the response
-                // Show success message and assume it worked
                 showToast('✅ Changes written to Google Sheet');
                 return true;
             } catch (e) {
