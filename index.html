@@ -9,7 +9,6 @@
     <!-- Google Font (Inter) -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
     <style>
-        /* ... (your existing styles, unchanged) ... */
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'Inter', sans-serif;
@@ -352,7 +351,10 @@
 <script>
     (function() {
         // ---------- CONFIG ----------
-        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxkUN847nX5YHoUAhHP3zaqTff1FsWFyV6dPMw_amLob4S8SWB885-rDQk2Ryv5sMV6/exec';
+        // UPDATED with your new script URL
+        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwqNrWDsFKgQXIPKnLDAMM07NrsNMaat09mvfzsVPItiwrw63k3Xo_4lRZb_rmq3YLa/exec';
+        
+        // READ-ONLY CSV URL (for loading data)
         const GOOGLE_SHEET_CSV_URL =
             'https://docs.google.com/spreadsheets/d/e/2PACX-1vS6vgKU3P3moh9hiYf2DuUS0vadJiodsByFEPoIL8i38gclzE0gTk00YhIXFr--jgX6p3q4HiSPc2u4/pub?output=csv';
 
@@ -492,7 +494,6 @@
         // ---------- WRITE TO GOOGLE SHEET - Using no-cors + form-encoded ----------
         async function writeToSheet(updatedInventory) {
             try {
-                // Convert data to form-encoded format
                 const formData = new URLSearchParams();
                 formData.append('data', JSON.stringify(updatedInventory.map(row => ({
                     brand: row.Brand || '',
@@ -503,14 +504,13 @@
 
                 await fetch(APPS_SCRIPT_URL, {
                     method: 'POST',
-                    mode: 'no-cors', // This avoids CORS preflight
+                    mode: 'no-cors',
                     headers: {
                         'Content-Type': 'application/x-www-form-urlencoded',
                     },
                     body: formData.toString()
                 });
 
-                // With no-cors, we can't read the response, but if no error, it worked
                 showToast('✅ Changes written to Google Sheet');
                 return true;
             } catch (e) {
