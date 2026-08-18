@@ -267,6 +267,8 @@
             z-index: 999;
             display: none;
             backdrop-filter: blur(4px);
+            max-width: 90%;
+            text-align: center;
         }
         .toast.show { display: block; }
         .toast i { margin-right: 10px; color: #ff5e5e; }
@@ -302,9 +304,9 @@
         <div class="stat-item"><i class="fas fa-cloud"></i> Google Sheet: <span id="lastUpdate">loading…</span></div>
     </div>
 
-    <!-- transfer card: ADD / REMOVE / TRANSFER (unified) -->
+    <!-- transfer card -->
     <div class="transfer-card">
-        <h3><i class="fas fa-arrow-right-arrow-left"></i> ADD · REMOVE · TRANSFER</h3>
+        <h3><i class="fas fa-arrow-right-arrow-left"></i> ADD · REMOVE · UPDATE</h3>
         <div class="transfer-grid">
             <div class="transfer-field">
                 <label><i class="fas fa-tag"></i> Brand</label>
@@ -315,7 +317,7 @@
                 <select id="transferSize"><option value="">— select —</option></select>
             </div>
             <div class="transfer-field">
-                <label><i class="fas fa-arrow-right"></i> From / Target</label>
+                <label><i class="fas fa-warehouse"></i> Warehouse</label>
                 <select id="transferFrom"><option value="">— warehouse —</option></select>
             </div>
             <div class="transfer-field">
@@ -327,8 +329,7 @@
         <div style="margin-top: 10px; font-size: 0.8rem; color: #9f5f5f;">
             <i class="fas fa-info-circle"></i> 
             <strong>Add</strong> (positive) · <strong>Remove</strong> (negative) · 
-            <strong>Transfer</strong> = remove from source, add to destination (use two updates). 
-            Changes are written back to Google Sheet via Apps Script.
+            Changes are written directly to Google Sheet.
         </div>
     </div>
 
@@ -350,18 +351,10 @@
 <script>
     (function() {
         // ---------- CONFIG ----------
-        // IMPORTANT: Replace this URL with your own Google Apps Script web app URL
-        // that handles POST requests to update the sheet.
-        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec'; 
-        // For demo, we keep the read-only CSV fallback, but we also write via Apps Script.
-        // If you don't have a script yet, set this to null and the page will work read-only.
-        // But we want "write back" – so you MUST deploy a script and put the URL here.
-
-        // For testing without a real script, you can set a flag to simulate updates.
-        // But we will actually attempt to POST. To avoid errors, we provide a mock.
-        // In production, replace with your real Apps Script URL.
-
-        // ---------- READ FROM GOOGLE SHEET (CSV) ----------
+        // Your Google Apps Script Web App URL
+        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzXbDfRsKuuUo5JV1fI01Xk-OtgZY2YHR-7ZzUbP1CXGQG0_o-tJRFyyhjNsxEseLXX/exec';
+        
+        // READ-ONLY CSV URL (for loading data)
         const GOOGLE_SHEET_CSV_URL =
             'https://docs.google.com/spreadsheets/d/e/2PACX-1vS6vgKU3P3moh9hiYf2DuUS0vadJiodsByFEPoIL8i38gclzE0gTk00YhIXFr--jgX6p3q4HiSPc2u4/pub?output=csv';
 
@@ -389,10 +382,10 @@
             toast.style.borderColor = isError ? '#b33b3b' : '#43b33b';
             toast.querySelector('i').className = isError ? 'fas fa-exclamation-circle' : 'fas fa-check-circle';
             clearTimeout(toast._timer);
-            toast._timer = setTimeout(() => { toast.style.display = 'none'; }, 3500);
+            toast._timer = setTimeout(() => { toast.style.display = 'none'; }, 4000);
         }
 
-        // ---------- CSV PARSER (robust) ----------
+        // ---------- CSV PARSER ----------
         function parseCSV(csvText) {
             const rows = [];
             let row = [], field = '', inQuotes = false;
@@ -506,33 +499,25 @@
 
         // ---------- WRITE TO GOOGLE SHEET via APPS SCRIPT ----------
         async function writeToSheet(updatedInventory) {
-            if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL.includes('YOUR_SCRIPT_ID')) {
-                // Mock mode: just update local state and show warning
-                console.warn('Apps Script URL not configured. Changes are local only.');
-                showToast('⚠️ Script URL not set — changes are local (demo)', true);
-                return true; // pretend success
-            }
-
             try {
-                // Prepare payload: array of objects
                 const payload = {
-                    action: 'updateInventory',
                     data: updatedInventory.map(row => ({
-                        brand: row.Brand,
-                        size: row.Size,
-                        qty: row.QTY,
-                        storeroom: row.Storeroom
+                        brand: row.Brand || '',
+                        size: row.Size || '',
+                        qty: parseInt(row.QTY) || 0,
+                        storeroom: row.Storeroom || ''
                     }))
                 };
 
                 const response = await fetch(APPS_SCRIPT_URL, {
                     method: 'POST',
-                    mode: 'no-cors', // if script is published as web app with "execute as me"
+                    mode: 'no-cors',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
                 });
 
-                // no-cors gives opaque response, we assume success if no network error
+                // With no-cors, we can't read the response
+                // But if we get here without error, it likely worked
                 showToast('✅ Changes written to Google Sheet');
                 return true;
             } catch (e) {
@@ -542,9 +527,10 @@
             }
         }
 
-        // ---------- PERFORM UPDATE (local + sync) ----------
+        // ---------- PERFORM UPDATE ----------
         async function performTransfer() {
             if (isUpdating) return;
+            
             const brand = brandSelect.value;
             const size = sizeSelect.value;
             const fromWh = fromSelect.value;
@@ -576,10 +562,13 @@
                 return;
             }
 
-            // update local
+            // Save old state for rollback
+            const oldQty = currentQty;
+            
+            // Update local
             inventory[index].QTY = newQty;
 
-            // disable button during sync
+            // Disable button during sync
             isUpdating = true;
             transferBtn.disabled = true;
             transferBtn.innerHTML = '<i class="fas fa-spinner fa-pulse"></i> syncing…';
@@ -589,14 +578,12 @@
 
             if (success) {
                 renderTable();
-                showToast(`✅ ${brand} ${size} in ${fromWh}: ${currentQty} → ${newQty}`);
+                showToast(`✅ ${brand} ${size} in ${fromWh}: ${oldQty} → ${newQty}`);
             } else {
-                // revert local change if write failed? We keep it but show error
-                // but we already changed local. We could revert, but better to keep consistency?
-                // Actually we should revert to avoid mismatch.
-                inventory[index].QTY = currentQty;
+                // Rollback on failure
+                inventory[index].QTY = oldQty;
                 renderTable();
-                showToast('❌ Update failed, local change reverted.', true);
+                showToast('❌ Update failed, changes reverted.', true);
             }
 
             isUpdating = false;
@@ -633,8 +620,6 @@
             loadInventoryFromGoogleSheet();
             transferBtn.addEventListener('click', performTransfer);
             brandSelect.addEventListener('change', populateSelects);
-            // refresh on size change? we only need to repopulate sizes when brand changes.
-            // Also, if fromSelect changes, no need to repopulate.
         }
 
         init();
