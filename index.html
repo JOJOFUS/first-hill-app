@@ -9,7 +9,6 @@
     <!-- Google Font (Inter) -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
     <style>
-        /* ... (your existing styles, unchanged) ... */
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'Inter', sans-serif;
@@ -354,9 +353,9 @@
         // ---------- CONFIG ----------
         const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwvMAPh2gh2WITTIvOjohXKJCsLiM3fmimzSJcoBiIPunP68FjHuOZ8mjBRnidlc6e9/exec';
         
-        // FIXED: Use a CORS proxy to load the CSV
+        // FIXED: Use corsproxy.io instead of allorigins.win
         const GOOGLE_SHEET_CSV_URL =
-            'https://api.allorigins.win/raw?url=' + encodeURIComponent('https://docs.google.com/spreadsheets/d/e/2PACX-1vS6vgKU3P3moh9hiYf2DuUS0vadJiodsByFEPoIL8i38gclzE0gTk00YhIXFr--jgX6p3q4HiSPc2u4/pub?output=csv');
+            'https://corsproxy.io/?' + encodeURIComponent('https://docs.google.com/spreadsheets/d/e/2PACX-1vS6vgKU3P3moh9hiYf2DuUS0vadJiodsByFEPoIL8i38gclzE0gTk00YhIXFr--jgX6p3q4HiSPc2u4/pub?output=csv');
 
         let inventory = [];
         let isUpdating = false;
@@ -582,9 +581,11 @@
         // ---------- LOAD INVENTORY ----------
         async function loadInventoryFromGoogleSheet() {
             try {
+                console.log('Loading from:', GOOGLE_SHEET_CSV_URL);
                 const response = await fetch(GOOGLE_SHEET_CSV_URL, { cache: 'no-store' });
                 if (!response.ok) throw new Error(`HTTP ${response.status}`);
                 const csvText = await response.text();
+                console.log('CSV loaded, length:', csvText.length);
                 const parsed = parseCSV(csvText);
                 if (!parsed.length) throw new Error('No data rows found.');
                 inventory = parsed;
@@ -599,7 +600,7 @@
                 updateStats();
                 populateSelects();
                 lastUpdateEl.textContent = 'Load failed';
-                showToast('❌ Failed to load sheet data', true);
+                showToast('❌ Failed to load sheet data: ' + error.message, true);
             }
         }
 
