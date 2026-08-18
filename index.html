@@ -352,7 +352,7 @@
     (function() {
         // ---------- CONFIG ----------
         // UPDATED with your new script URL
-        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwqNrWDsFKgQXIPKnLDAMM07NrsNMaat09mvfzsVPItiwrw63k3Xo_4lRZb_rmq3YLa/exec';
+        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwvMAPh2gh2WITTIvOjohXKJCsLiM3fmimzSJcoBiIPunP68FjHuOZ8mjBRnidlc6e9/exec';
         
         // READ-ONLY CSV URL (for loading data)
         const GOOGLE_SHEET_CSV_URL =
@@ -502,6 +502,9 @@
                     storeroom: row.Storeroom || ''
                 }))));
 
+                // Log what we're sending (visible in browser console)
+                console.log('Sending update to sheet:', formData.toString());
+
                 await fetch(APPS_SCRIPT_URL, {
                     method: 'POST',
                     mode: 'no-cors',
@@ -511,6 +514,8 @@
                     body: formData.toString()
                 });
 
+                // With no-cors, we can't read the response
+                // Show success message and assume it worked
                 showToast('✅ Changes written to Google Sheet');
                 return true;
             } catch (e) {
