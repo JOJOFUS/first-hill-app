@@ -317,7 +317,7 @@
     <div class="stats" id="statsContainer">
         <div class="stat-item"><i class="fas fa-boxes"></i> Total SKU: <strong id="totalSku">0</strong></div>
         <div class="stat-item"><i class="fas fa-cubes"></i> Total QTY: <strong id="totalQty">0</strong></div>
-        <div class="stat-item"><i class="fas fa-arrows-rotate"></i> Last update: <span id="lastUpdate">—</span></div>
+        <div class="stat-item"><i class="fas fa-cloud"></i> Google Sheet: <span id="lastUpdate">loading…</span></div>
     </div>
 
     <!-- transfer card -->
@@ -342,7 +342,7 @@
             </div>
             <button class="btn-transfer" id="transferBtn"><i class="fas fa-pen-to-square"></i> UPDATE</button>
         </div>
-        <div style="margin-top: 10px; font-size: 0.8rem; color: #9f5f5f;"><i class="fas fa-info-circle"></i> Enter positive to add, negative to subtract. Transfer updates the 'from' warehouse.</div>
+        <div style="margin-top: 10px; font-size: 0.8rem; color: #9f5f5f;"><i class="fas fa-info-circle"></i> Enter positive to add, negative to subtract. Changes update this page only; the published Google Sheet remains read-only.</div>
     </div>
 
     <!-- table -->
@@ -361,35 +361,11 @@
 
 <script>
     (function() {
-        // ----- MOCK CSV with exact brands: Road cruza, Sailun, Comforser, Rovello, Doublestar, Longway, Sunwide, Taishan, Stallion -----
-        const MOCK_CSV = `Brand,Size,QTY,Storeroom
-Road cruza,205/55R16,8,Op1
-Road cruza,225/45R17,6,Op2
-Sailun,205/55R16,14,A1
-Sailun,215/60R16,5,Op3
-Comforser,225/45R17,9,ShopB
-Comforser,205/55R16,7,A2
-Rovello,215/60R16,11,Op4
-Rovello,225/45R17,3,Ketan
-Doublestar,205/55R16,6,A3
-Doublestar,215/60R16,12,Op1
-Longway,225/45R17,4,Op2
-Longway,205/55R16,10,ShopB
-Sunwide,215/60R16,8,A1
-Sunwide,225/45R17,5,Op3
-Taishan,205/55R16,9,A2
-Taishan,215/60R16,7,Op4
-Stallion,225/45R17,6,Ketan
-Stallion,205/55R16,12,A3
-Road cruza,215/60R16,3,Op2
-Sailun,225/45R17,4,A1
-Comforser,215/60R16,5,Op1
-Rovello,205/55R16,8,ShopB
-Doublestar,225/45R17,3,Op3
-Longway,215/60R16,6,A2
-Sunwide,205/55R16,7,Op4
-Taishan,225/45R17,4,Ketan
-Stallion,215/60R16,5,A1`;
+        // ----- LIVE GOOGLE SHEETS DATA -----
+        // The spreadsheet is published to the web, so the page can read its
+        // current CSV data whenever it loads.
+        const GOOGLE_SHEET_CSV_URL =
+            'https://docs.google.com/spreadsheets/d/e/2PACX-1vS6vgKU3P3moh9hiYf2DuUS0vadJiodsByFEPoIL8i38gclzE0gTk00YhIXFr--jgX6p3q4HiSPc2u4/pub?output=csv';
 
         // state
         let inventory = [];
@@ -409,24 +385,66 @@ Stallion,215/60R16,5,A1`;
 
         // helpers
         function parseCSV(csvText) {
-            const lines = csvText.split(/\r?\n/).filter(line => line.trim() !== '');
-            if (lines.length < 2) return [];
-            const headers = lines[0].split(',').map(h => h.trim());
-            const result = [];
-            for (let i = 1; i < lines.length; i++) {
-                const values = lines[i].split(',').map(v => v.trim());
-                if (values.length < 4) continue;
+            const rows = [];
+            let row = [], field = '', inQuotes = false;
+
+            for (let i = 0; i < csvText.length; i++) {
+                const ch = csvText[i];
+
+                if (ch === '"') {
+                    if (inQuotes && csvText[i + 1] === '"') {
+                        field += '"';
+                        i++;
+                    } else {
+                        inQuotes = !inQuotes;
+                    }
+                } else if (ch === ',' && !inQuotes) {
+                    row.push(field.trim());
+                    field = '';
+                } else if ((ch === '\\n' || ch === '\\r') && !inQuotes) {
+                    if (ch === '\\r' && csvText[i + 1] === '\\n') i++;
+                    row.push(field.trim());
+                    field = '';
+                    if (row.some(v => v !== '')) rows.push(row);
+                    row = [];
+                } else {
+                    field += ch;
+                }
+            }
+
+            if (field !== '' || row.length) {
+                row.push(field.trim());
+                if (row.some(v => v !== '')) rows.push(row);
+            }
+
+            if (rows.length < 2) return [];
+
+            const headers = rows[0].map(h => h.trim());
+            return rows.slice(1).map(values => {
                 const obj = {};
                 headers.forEach((h, idx) => {
-                    let val = values[idx] || '';
-                    if (h === 'QTY') val = parseInt(val, 10) || 0;
+                    let val = values[idx] ?? '';
+                    if (h.toLowerCase() === 'qty') {
+                        val = parseInt(String(val).replace(/,/g, ''), 10) || 0;
+                    }
                     obj[h] = val;
                 });
-                obj.QTY = Number(obj.QTY);
-                if (isNaN(obj.QTY)) obj.QTY = 0;
-                result.push(obj);
-            }
-            return result;
+
+                // Normalize column names expected by the page.
+                const qtyKey = headers.find(h => h.toLowerCase() === 'qty');
+                const brandKey = headers.find(h => h.toLowerCase() === 'brand');
+                const sizeKey = headers.find(h => h.toLowerCase() === 'size');
+                const storeKey = headers.find(h =>
+                    ['storeroom', 'store room', 'warehouse', 'location'].includes(h.toLowerCase())
+                );
+
+                return {
+                    Brand: brandKey ? obj[brandKey] : '',
+                    Size: sizeKey ? obj[sizeKey] : '',
+                    QTY: qtyKey ? Number(obj[qtyKey]) || 0 : 0,
+                    Storeroom: storeKey ? obj[storeKey] : ''
+                };
+            }).filter(item => item.Brand || item.Size || item.Storeroom);
         }
 
         function renderTable() {
@@ -519,25 +537,45 @@ Stallion,215/60R16,5,A1`;
             }
             inventory[index].QTY = newQty;
             renderTable();
-            console.log(`[MOCK] updated ${brand} ${size} in ${fromWh}: ${currentQty} → ${newQty}`);
+            console.log(`[LOCAL VIEW] updated ${brand} ${size} in ${fromWh}: ${currentQty} → ${newQty}`);
         }
 
-        function loadInventoryFromCSV(csvText) {
-            const parsed = parseCSV(csvText);
-            if (parsed.length) {
+        async function loadInventoryFromGoogleSheet() {
+            try {
+                const response = await fetch(GOOGLE_SHEET_CSV_URL, {
+                    cache: 'no-store'
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Google Sheets returned HTTP ${response.status}`);
+                }
+
+                const csvText = await response.text();
+                const parsed = parseCSV(csvText);
+
+                if (!parsed.length) {
+                    throw new Error('No usable inventory rows were found in the Google Sheet.');
+                }
+
                 inventory = parsed;
-            } else {
-                // fallback with exact brands
-                inventory = [
-                    { Brand: 'Road cruza', Size: '205/55R16', QTY: 8, Storeroom: 'Op1' },
-                    { Brand: 'Sailun', Size: '225/45R17', QTY: 4, Storeroom: 'A1' },
-                ];
+                renderTable();
+            } catch (error) {
+                console.error('Could not load Google Sheet:', error);
+                inventory = [];
+                tbody.innerHTML = `<tr class="empty-row">
+                    <td colspan="4">
+                        <i class="fas fa-triangle-exclamation"></i>
+                        unable to load Google Sheet data
+                    </td>
+                </tr>`;
+                updateStats();
+                populateSelects();
+                lastUpdateEl.textContent = 'Load failed';
             }
-            renderTable();
         }
 
         function init() {
-            loadInventoryFromCSV(MOCK_CSV);
+            loadInventoryFromGoogleSheet();
             transferBtn.addEventListener('click', performTransfer);
             brandSelect.addEventListener('change', function() {
                 populateSelects();
