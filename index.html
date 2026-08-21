@@ -271,11 +271,98 @@
         .toast.show { display: block; }
         .toast i { margin-right: 10px; color: #ff5e5e; }
 
+        .search-bar {
+            position: relative;
+            margin-bottom: 20px;
+        }
+        .search-bar i {
+            position: absolute;
+            left: 18px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #b57474;
+            font-size: 0.9rem;
+        }
+        .search-bar input {
+            width: 100%;
+            padding: 14px 18px 14px 44px;
+            background: #1b0b0b;
+            border: 1px solid #631d1d;
+            border-radius: 40px;
+            color: #f0e0e0;
+            font-weight: 500;
+            font-size: 0.95rem;
+            outline: none;
+            transition: 0.2s;
+        }
+        .search-bar input::placeholder { color: #7a5050; }
+        .search-bar input:focus {
+            border-color: #d43b3b;
+            box-shadow: 0 0 0 3px #4f1515;
+        }
+        .search-bar .clear-search {
+            position: absolute;
+            right: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #b57474;
+            font-size: 0.9rem;
+            cursor: pointer;
+            padding: 4px;
+            display: none;
+        }
+        .search-bar .clear-search.show { display: block; }
+        .search-count {
+            font-size: 0.75rem;
+            color: #9f5f5f;
+            margin: -10px 0 16px 6px;
+        }
+
         @media (max-width: 700px) {
-            .app { padding: 18px 14px; }
-            .header { flex-direction: column; align-items: start; }
+            body { padding: 10px; }
+            .app { padding: 16px 12px 28px; border-radius: 20px; }
+            .header { flex-direction: column; align-items: start; margin-bottom: 20px; }
+            .logo h1 { font-size: 1.4rem; }
+            .logo h1 br { display: none; }
+            .logo span { margin-left: 0; margin-top: 6px; display: inline-block; }
+            .warehouse-badge { padding: 8px 14px; width: 100%; }
+            .wh-list { font-size: 0.8rem; }
+            .stats { flex-direction: column; align-items: flex-start; gap: 10px; padding: 14px 16px; }
+            .transfer-card { padding: 16px 14px 18px; margin-bottom: 24px; }
             .transfer-grid { flex-direction: column; align-items: stretch; }
+            .transfer-field { min-width: 0; }
             .btn-transfer { width: 100%; justify-content: center; }
+            table { font-size: 0.82rem; }
+            th, td { padding: 10px 8px; }
+            th { font-size: 0.68rem; }
+            .search-bar input { padding: 12px 16px 12px 40px; font-size: 0.9rem; }
+        }
+
+        @media (max-width: 480px) {
+            .table-wrapper { border-radius: 16px; margin: 0 -4px; }
+            table, thead, tbody, th, td, tr { display: block; }
+            thead tr { position: absolute; top: -9999px; left: -9999px; }
+            tbody tr {
+                background: #1b0b0b;
+                border-bottom: 1px solid #341212;
+                padding: 12px 14px;
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 8px 10px;
+            }
+            tbody tr.empty-row { display: block; padding: 30px 10px; }
+            td { border: none; padding: 0; }
+            td:before {
+                content: attr(data-label);
+                display: block;
+                font-size: 0.65rem;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+                color: #b57474;
+                font-weight: 600;
+                margin-bottom: 4px;
+            }
+            .qty-badge, .warehouse-tag { display: inline-block; }
         }
     </style>
 </head>
@@ -327,6 +414,13 @@
         </div>
     </div>
 
+    <div class="search-bar">
+        <i class="fas fa-magnifying-glass"></i>
+        <input type="text" id="searchInput" placeholder="Search brand, size or storeroom…" autocomplete="off">
+        <i class="fas fa-circle-xmark clear-search" id="clearSearch"></i>
+    </div>
+    <div class="search-count" id="searchCount" style="display:none;"></div>
+
     <div class="table-wrapper">
         <table id="inventoryTable">
             <thead><tr><th>Brand</th><th>Size</th><th>QTY</th><th>Storeroom</th></tr></thead>
@@ -349,8 +443,12 @@
 
         let inventory = [];
         let isUpdating = false;
+        let searchQuery = '';
 
         const tbody = document.getElementById('tableBody');
+        const searchInput = document.getElementById('searchInput');
+        const clearSearch = document.getElementById('clearSearch');
+        const searchCountEl = document.getElementById('searchCount');
         const totalSkuEl = document.getElementById('totalSku');
         const totalQtyEl = document.getElementById('totalQty');
         const lastUpdateEl = document.getElementById('lastUpdate');
@@ -422,25 +520,50 @@
             }).filter(item => item.Brand || item.Size || item.Storeroom);
         }
 
+        function getFilteredInventory() {
+            if (!searchQuery) return inventory;
+            const q = searchQuery.toLowerCase();
+            return inventory.filter(item =>
+                String(item.Brand).toLowerCase().includes(q) ||
+                String(item.Size).toLowerCase().includes(q) ||
+                String(item.Storeroom).toLowerCase().includes(q)
+            );
+        }
+
         function renderTable() {
             if (!inventory.length) {
                 tbody.innerHTML = `<tr class="empty-row"><td colspan="4"><i class="fas fa-database"></i> no tyre data</td></tr>`;
                 updateStats();
                 populateSelects();
+                searchCountEl.style.display = 'none';
                 return;
             }
-            let html = '';
-            let totalQty = 0;
-            inventory.forEach(item => {
-                totalQty += item.QTY;
-                html += `<tr>
-                    <td><span class="brand-tag"><i class="fas fa-circle" style="color:#c53535; font-size:0.5rem; margin-right:6px;"></i>${item.Brand}</span></td>
-                    <td><span class="size-tag">${item.Size}</span></td>
-                    <td><span class="qty-badge">${item.QTY}</span></td>
-                    <td><span class="warehouse-tag"><i class="fas fa-warehouse" style="margin-right:4px;"></i>${item.Storeroom}</span></td>
-                </tr>`;
-            });
-            tbody.innerHTML = html;
+
+            const filtered = getFilteredInventory();
+
+            if (searchQuery) {
+                searchCountEl.style.display = 'block';
+                searchCountEl.textContent = `${filtered.length} of ${inventory.length} items match "${searchQuery}"`;
+            } else {
+                searchCountEl.style.display = 'none';
+            }
+
+            if (!filtered.length) {
+                tbody.innerHTML = `<tr class="empty-row"><td colspan="4"><i class="fas fa-magnifying-glass"></i> no matches for "${searchQuery}"</td></tr>`;
+            } else {
+                let html = '';
+                filtered.forEach(item => {
+                    html += `<tr>
+                        <td data-label="Brand"><span class="brand-tag"><i class="fas fa-circle" style="color:#c53535; font-size:0.5rem; margin-right:6px;"></i>${item.Brand}</span></td>
+                        <td data-label="Size"><span class="size-tag">${item.Size}</span></td>
+                        <td data-label="QTY"><span class="qty-badge">${item.QTY}</span></td>
+                        <td data-label="Storeroom"><span class="warehouse-tag"><i class="fas fa-warehouse" style="margin-right:4px;"></i>${item.Storeroom}</span></td>
+                    </tr>`;
+                });
+                tbody.innerHTML = html;
+            }
+
+            const totalQty = inventory.reduce((acc, i) => acc + i.QTY, 0);
             totalSkuEl.textContent = inventory.length;
             totalQtyEl.textContent = totalQty;
             const now = new Date();
@@ -603,6 +726,19 @@
             loadInventoryFromGoogleSheet();
             transferBtn.addEventListener('click', performTransfer);
             brandSelect.addEventListener('change', populateSelects);
+
+            searchInput.addEventListener('input', () => {
+                searchQuery = searchInput.value.trim();
+                clearSearch.classList.toggle('show', searchQuery.length > 0);
+                renderTable();
+            });
+            clearSearch.addEventListener('click', () => {
+                searchInput.value = '';
+                searchQuery = '';
+                clearSearch.classList.remove('show');
+                renderTable();
+                searchInput.focus();
+            });
         }
 
         init();
