@@ -200,7 +200,10 @@
         <div class="logo">
             <h1><i class="fas fa-warehouse"></i> Firsthill stock tracker</h1>
         </div>
-        <a href="index.html" class="back-link"><i class="fas fa-arrow-left"></i> back to inventory</a>
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+            <a href="history.html" class="back-link"><i class="fas fa-clock-rotate-left"></i> history</a>
+            <a href="index.html" class="back-link"><i class="fas fa-arrow-left"></i> back to inventory</a>
+        </div>
     </div>
 
     <div class="transfer-card">
@@ -357,7 +360,7 @@
             currentQtyNote.classList.add('show');
         }
 
-        async function writeRowToSheet(brand, size, storeroom, newQty) {
+        async function writeRowToSheet(brand, size, storeroom, newQty, delta) {
             try {
                 const formData = new URLSearchParams();
                 formData.append('action', 'updateQty');
@@ -365,6 +368,7 @@
                 formData.append('size', size || '');
                 formData.append('storeroom', storeroom || '');
                 formData.append('qty', String(parseInt(newQty, 10) || 0));
+                formData.append('delta', String(parseInt(delta, 10) || 0));
 
                 const response = await fetch(APPS_SCRIPT_URL, {
                     method: 'POST',
@@ -425,7 +429,7 @@
             transferBtn.disabled = true;
             transferBtn.innerHTML = '<i class="fas fa-spinner fa-pulse"></i> syncing…';
 
-            const success = await writeRowToSheet(brand, size, fromWh, newQty);
+            const success = await writeRowToSheet(brand, size, fromWh, newQty, qtyDelta);
 
             if (success) {
                 if (index === -1) {
@@ -476,18 +480,26 @@
 <!--
     ============================================================
     GOOGLE APPS SCRIPT (paste this into Extensions > Apps Script
-    on the Google Sheet, then Deploy > New deployment > Web app)
+    on the Google Sheet, then Deploy > New deployment > Web app.
+    Redeploy — "Manage deployments" > pencil icon > New version —
+    after pasting this updated version, so the /exec URL picks up
+    the History logging and the new doGet handler.)
     ============================================================
 
     Deploy settings:
       - Execute as: Me
       - Who has access: Anyone
-    Then copy the resulting /exec URL into APPS_SCRIPT_URL above.
+    Then copy the resulting /exec URL into APPS_SCRIPT_URL above
+    (used on update.html AND history.html).
 
-    Note: this page fetches this WITHOUT mode:'no-cors', so it can read
-    the real JSON {status, message} response. Apps Script Web Apps allow
-    this for simple POST requests (form-urlencoded body, no custom headers)
-    without any extra CORS config needed on your end.
+    Note: these pages fetch this WITHOUT mode:'no-cors', so they can read
+    the real JSON response. Apps Script Web Apps allow this for simple
+    GET requests and simple POST requests (form-urlencoded body, no
+    custom headers) without any extra CORS config needed on your end.
+
+    This version also writes every change to a "History" tab
+    (auto-created on first update) with columns:
+    Timestamp | Brand | Size | Storeroom | Change | NewQty
 
     function doPost(e) {
       try {
@@ -501,6 +513,7 @@
         const size = (params.size || '').trim();
         const storeroom = (params.storeroom || '').trim();
         const qty = parseInt(params.qty, 10);
+        const delta = params.delta !== undefined ? parseInt(params.delta, 10) : 0;
 
         if (!brand || !size || !storeroom || isNaN(qty)) {
           throw new Error('Missing or invalid fields: ' + JSON.stringify(params));
@@ -540,6 +553,7 @@
           }
         }
 
+        let action;
         if (rowIndex === -1) {
           const newRow = [];
           newRow[brandCol] = brand;
@@ -547,15 +561,62 @@
           newRow[qtyCol] = qty;
           newRow[storeCol] = storeroom;
           sheet.appendRow(newRow);
+          action = 'inserted';
+        } else {
+          sheet.getRange(rowIndex + 1, qtyCol + 1).setValue(qty);
+          action = 'updated';
+        }
+
+        logHistory_(ss, brand, size, storeroom, delta, qty);
+
+        return ContentService
+          .createTextOutput(JSON.stringify({ status: 'success', action: action }))
+          .setMimeType(ContentService.MimeType.JSON);
+
+      } catch (error) {
+        return ContentService
+          .createTextOutput(JSON.stringify({ status: 'error', message: error.toString() }))
+          .setMimeType(ContentService.MimeType.JSON);
+      }
+    }
+
+    function logHistory_(ss, brand, size, storeroom, delta, newQty) {
+      const HISTORY_SHEET_NAME = 'History';
+      let hist = ss.getSheetByName(HISTORY_SHEET_NAME);
+      if (!hist) {
+        hist = ss.insertSheet(HISTORY_SHEET_NAME);
+        hist.appendRow(['Timestamp', 'Brand', 'Size', 'Storeroom', 'Change', 'NewQty']);
+      }
+      hist.appendRow([new Date(), brand, size, storeroom, delta, newQty]);
+    }
+
+    function doGet(e) {
+      try {
+        const params = e.parameter || {};
+        if (params.action !== 'getHistory') {
+          throw new Error('Unknown or missing action: ' + params.action);
+        }
+
+        const ss = SpreadsheetApp.getActiveSpreadsheet();
+        const hist = ss.getSheetByName('History');
+        if (!hist) {
           return ContentService
-            .createTextOutput(JSON.stringify({ status: 'success', action: 'inserted' }))
+            .createTextOutput(JSON.stringify({ status: 'success', rows: [] }))
             .setMimeType(ContentService.MimeType.JSON);
         }
 
-        sheet.getRange(rowIndex + 1, qtyCol + 1).setValue(qty);
+        const values = hist.getDataRange().getValues();
+        const rows = values.slice(1).map(r => ({
+          timestamp: r[0] instanceof Date ? r[0].toISOString() : String(r[0]),
+          brand: r[1],
+          size: r[2],
+          storeroom: r[3],
+          delta: r[4],
+          newQty: r[5]
+        })).reverse(); // most recent first
 
         return ContentService
-          .createTextOutput(JSON.stringify({ status: 'success', action: 'updated', row: rowIndex + 1 }))
+          .createTextOutput(JSON.stringify({ status: 'success', rows: rows }))
           .setMimeType(ContentService.MimeType.JSON);
 
       } catch (error) {

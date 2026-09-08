@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Firsthill · update history</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #1a0a0a;
+            color: #f0e6e6;
+            min-height: 100vh;
+            padding: 24px;
+        }
+        .app {
+            max-width: 1100px;
+            margin: 0 auto;
+            background: #1f0f0f;
+            border-radius: 32px;
+            padding: 28px 30px 40px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.7), 0 0 0 1px #4a1a1a;
+            border: 1px solid #5e1e1e;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px 20px;
+            margin-bottom: 28px;
+            border-bottom: 2px solid #8b1e1e;
+            padding-bottom: 20px;
+        }
+        .logo h1 {
+            font-weight: 700;
+            font-size: 1.6rem;
+            letter-spacing: -0.5px;
+            color: #ff4d4d;
+            text-shadow: 0 0 8px #7a1a1a;
+        }
+        .logo i { color: #ff2a2a; margin-right: 8px; }
+        .nav-links { display: flex; gap: 10px; flex-wrap: wrap; }
+        .back-link {
+            color: #dba8a8;
+            font-size: 0.9rem;
+            text-decoration: none;
+            background: #2f1212;
+            padding: 8px 16px;
+            border-radius: 40px;
+            border: 1px solid #661c1c;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: 0.15s;
+        }
+        .back-link:hover { background: #3d1414; border-color: #982a2a; }
+
+        .search-bar {
+            position: relative;
+            margin-bottom: 20px;
+        }
+        .search-bar i {
+            position: absolute;
+            left: 18px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #b57474;
+            font-size: 0.9rem;
+        }
+        .search-bar input {
+            width: 100%;
+            padding: 14px 18px 14px 44px;
+            background: #1b0b0b;
+            border: 1px solid #631d1d;
+            border-radius: 40px;
+            color: #f0e0e0;
+            font-weight: 500;
+            font-size: 0.95rem;
+            outline: none;
+            transition: 0.2s;
+        }
+        .search-bar input::placeholder { color: #7a5050; }
+        .search-bar input:focus {
+            border-color: #d43b3b;
+            box-shadow: 0 0 0 3px #4f1515;
+        }
+        .search-bar .clear-search {
+            position: absolute;
+            right: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #b57474;
+            font-size: 0.9rem;
+            cursor: pointer;
+            padding: 4px;
+            display: none;
+        }
+        .search-bar .clear-search.show { display: block; }
+        .search-count {
+            font-size: 0.75rem;
+            color: #9f5f5f;
+            margin: -10px 0 16px 6px;
+        }
+
+        .table-wrapper {
+            background: #130707;
+            border-radius: 24px;
+            padding: 6px 4px 4px 4px;
+            border: 1px solid #631d1d;
+            overflow-x: auto;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+            background: #1b0b0b;
+            border-radius: 20px;
+            overflow: hidden;
+        }
+        th {
+            text-align: left;
+            padding: 16px 14px;
+            background: #2d1010;
+            color: #ff8f8f;
+            font-weight: 600;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 2px solid #751f1f;
+        }
+        td {
+            padding: 14px 14px;
+            border-bottom: 1px solid #341212;
+            color: #ebd6d6;
+        }
+        tr:last-child td { border-bottom: none; }
+        .brand-tag { font-weight: 500; color: #f0c2c2; }
+        .size-tag { color: #dbb9b9; }
+        .warehouse-tag {
+            background: #281010;
+            padding: 4px 12px;
+            border-radius: 30px;
+            font-size: 0.75rem;
+            border: 1px solid #591d1d;
+            color: #dba8a8;
+            white-space: nowrap;
+        }
+        .qty-badge {
+            background: #3b1515;
+            padding: 4px 14px;
+            border-radius: 40px;
+            border: 1px solid #7f2828;
+            font-weight: 600;
+            color: #ffb3b3;
+        }
+        .change-badge {
+            padding: 4px 14px;
+            border-radius: 40px;
+            font-weight: 700;
+            border: 1px solid;
+            white-space: nowrap;
+        }
+        .change-badge.pos {
+            background: #10321a;
+            border-color: #2a7f45;
+            color: #7bffa0;
+        }
+        .change-badge.neg {
+            background: #321010;
+            border-color: #7f2a2a;
+            color: #ff8f8f;
+        }
+        .timestamp-cell { white-space: nowrap; color: #cfa9a9; }
+        .empty-row td {
+            text-align: center;
+            padding: 40px 10px;
+            color: #896060;
+            font-style: italic;
+        }
+        .footnote {
+            margin-top: 20px;
+            text-align: right;
+            font-size: 0.75rem;
+            color: #754a4a;
+            border-top: 1px solid #3d1515;
+            padding-top: 14px;
+        }
+        .footnote i { color: #b33b3b; }
+
+        @media (max-width: 700px) {
+            body { padding: 10px; }
+            .app { padding: 16px 12px 28px; border-radius: 20px; }
+            .header { flex-direction: column; align-items: start; margin-bottom: 20px; }
+            .logo h1 { font-size: 1.3rem; }
+            table { font-size: 0.82rem; }
+            th, td { padding: 10px 8px; }
+            th { font-size: 0.68rem; }
+            .search-bar input { padding: 12px 16px 12px 40px; font-size: 0.9rem; }
+        }
+
+        @media (max-width: 480px) {
+            .table-wrapper { border-radius: 16px; margin: 0 -4px; }
+            table, thead, tbody, th, td, tr { display: block; }
+            thead tr { position: absolute; top: -9999px; left: -9999px; }
+            tbody tr {
+                background: #1b0b0b;
+                border-bottom: 1px solid #341212;
+                padding: 12px 14px;
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 8px 10px;
+            }
+            tbody tr.empty-row { display: block; padding: 30px 10px; }
+            td { border: none; padding: 0; }
+            td:before {
+                content: attr(data-label);
+                display: block;
+                font-size: 0.65rem;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+                color: #b57474;
+                font-weight: 600;
+                margin-bottom: 4px;
+            }
+            .qty-badge, .warehouse-tag, .change-badge { display: inline-block; }
+        }
+    </style>
+</head>
+<body>
+<div class="app">
+    <div class="header">
+        <div class="logo">
+            <h1><i class="fas fa-clock-rotate-left"></i> Update history</h1>
+        </div>
+        <div class="nav-links">
+            <a href="update.html" class="back-link"><i class="fas fa-pen-to-square"></i> update quantity</a>
+            <a href="index.html" class="back-link"><i class="fas fa-arrow-left"></i> back to inventory</a>
+        </div>
+    </div>
+
+    <div class="search-bar">
+        <i class="fas fa-magnifying-glass"></i>
+        <input type="text" id="searchInput" placeholder="Search brand, size or storeroom…" autocomplete="off">
+        <i class="fas fa-circle-xmark clear-search" id="clearSearch"></i>
+    </div>
+    <div class="search-count" id="searchCount" style="display:none;"></div>
+
+    <div class="table-wrapper">
+        <table id="historyTable">
+            <thead><tr><th>Date &amp; time</th><th>Brand</th><th>Size</th><th>Storeroom</th><th>Change</th><th>New Qty</th></tr></thead>
+            <tbody id="tableBody">
+                <tr class="empty-row"><td colspan="6"><i class="fas fa-spinner fa-pulse"></i> loading history …</td></tr>
+            </tbody>
+        </table>
+    </div>
+    <div class="footnote"><i class="fas fa-cloud"></i> FirstHill (pty) ltd · update log</div>
+</div>
+
+<script>
+    (function() {
+        // ---------- CONFIG ----------
+        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxlIzjVbRkcWdX9A1bpGooGvH-WNw9pyf8reqspeGPNRTQqe06EDEYrpOpRBN876HyHcQ/exec';
+
+        let history = [];
+        let searchQuery = '';
+
+        const tbody = document.getElementById('tableBody');
+        const searchInput = document.getElementById('searchInput');
+        const clearSearch = document.getElementById('clearSearch');
+        const searchCountEl = document.getElementById('searchCount');
+
+        function formatTimestamp(ts) {
+            const d = new Date(ts);
+            if (isNaN(d.getTime())) return String(ts);
+            return d.toLocaleString('en-GB', {
+                day: '2-digit', month: 'short', year: 'numeric',
+                hour: '2-digit', minute: '2-digit'
+            });
+        }
+
+        function getFiltered() {
+            if (!searchQuery) return history;
+            const q = searchQuery.toLowerCase();
+            return history.filter(item =>
+                String(item.brand).toLowerCase().includes(q) ||
+                String(item.size).toLowerCase().includes(q) ||
+                String(item.storeroom).toLowerCase().includes(q)
+            );
+        }
+
+        function renderTable() {
+            if (!history.length) {
+                tbody.innerHTML = `<tr class="empty-row"><td colspan="6"><i class="fas fa-inbox"></i> no updates logged yet</td></tr>`;
+                searchCountEl.style.display = 'none';
+                return;
+            }
+
+            const filtered = getFiltered();
+
+            if (searchQuery) {
+                searchCountEl.style.display = 'block';
+                searchCountEl.textContent = `${filtered.length} of ${history.length} entries match "${searchQuery}"`;
+            } else {
+                searchCountEl.style.display = 'none';
+            }
+
+            if (!filtered.length) {
+                tbody.innerHTML = `<tr class="empty-row"><td colspan="6"><i class="fas fa-magnifying-glass"></i> no matches for "${searchQuery}"</td></tr>`;
+                return;
+            }
+
+            let html = '';
+            filtered.forEach(item => {
+                const delta = parseInt(item.delta, 10) || 0;
+                const isPos = delta >= 0;
+                const changeText = isPos ? `+${delta}` : `${delta}`;
+                html += `<tr>
+                    <td data-label="Date &amp; time"><span class="timestamp-cell">${formatTimestamp(item.timestamp)}</span></td>
+                    <td data-label="Brand"><span class="brand-tag"><i class="fas fa-circle" style="color:#c53535; font-size:0.5rem; margin-right:6px;"></i>${item.brand}</span></td>
+                    <td data-label="Size"><span class="size-tag">${item.size}</span></td>
+                    <td data-label="Storeroom"><span class="warehouse-tag"><i class="fas fa-warehouse" style="margin-right:4px;"></i>${item.storeroom}</span></td>
+                    <td data-label="Change"><span class="change-badge ${isPos ? 'pos' : 'neg'}"><i class="fas ${isPos ? 'fa-arrow-up' : 'fa-arrow-down'}"></i> ${changeText}</span></td>
+                    <td data-label="New Qty"><span class="qty-badge">${item.newQty}</span></td>
+                </tr>`;
+            });
+            tbody.innerHTML = html;
+        }
+
+        async function loadHistory() {
+            try {
+                const response = await fetch(`${APPS_SCRIPT_URL}?action=getHistory`, { cache: 'no-store' });
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const result = await response.json();
+                if (result.status !== 'success') throw new Error(result.message || 'Apps Script reported an error');
+                history = result.rows || [];
+                renderTable();
+            } catch (error) {
+                console.error('Load error:', error);
+                history = [];
+                tbody.innerHTML = `<tr class="empty-row">
+                    <td colspan="6"><i class="fas fa-triangle-exclamation"></i> unable to load history: ${error.message}</td>
+                </tr>`;
+            }
+        }
+
+        function init() {
+            loadHistory();
+            searchInput.addEventListener('input', () => {
+                searchQuery = searchInput.value.trim();
+                clearSearch.classList.toggle('show', searchQuery.length > 0);
+                renderTable();
+            });
+            clearSearch.addEventListener('click', () => {
+                searchInput.value = '';
+                searchQuery = '';
+                clearSearch.classList.remove('show');
+                renderTable();
+                searchInput.focus();
+            });
+        }
+
+        init();
+    })();
+</script>
+</body>
+</html>
