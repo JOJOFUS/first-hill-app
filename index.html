@@ -401,6 +401,10 @@
         </div>
     </div>
 
+    <div style="display:flex; justify-content:flex-end; margin-bottom:20px;">
+        <a href="update.html" class="btn-transfer" style="text-decoration:none;"><i class="fas fa-pen-to-square"></i> UPDATE QUANTITY</a>
+    </div>
+
     <div class="wh-filter-note" id="whFilterNote" style="display:none;"></div>
 
     <div class="stats" id="statsContainer">
@@ -415,33 +419,6 @@
         <i class="fas fa-circle-xmark clear-search" id="clearSearch"></i>
     </div>
     <div class="search-count" id="searchCount" style="display:none;"></div>
-
-    <div class="transfer-card">
-        <h3><i class="fas fa-arrow-right-arrow-left"></i> UPDATE QUANTITY</h3>
-        <div class="transfer-grid">
-            <div class="transfer-field">
-                <label><i class="fas fa-tag"></i> Brand</label>
-                <select id="transferBrand"><option value="">— select —</option></select>
-            </div>
-            <div class="transfer-field">
-                <label><i class="fas fa-ruler"></i> Size</label>
-                <select id="transferSize"><option value="">— select —</option></select>
-            </div>
-            <div class="transfer-field">
-                <label><i class="fas fa-warehouse"></i> Warehouse</label>
-                <select id="transferFrom"><option value="">— warehouse —</option></select>
-            </div>
-            <div class="transfer-field">
-                <label><i class="fas fa-arrow-left"></i> Qty Change</label>
-                <input type="number" id="transferQty" placeholder="+ add, - remove" value="1" min="-999" step="1">
-            </div>
-            <button class="btn-transfer" id="transferBtn"><i class="fas fa-pen-to-square"></i> UPDATE</button>
-        </div>
-        <div style="margin-top: 10px; font-size: 0.8rem; color: #9f5f5f;">
-            <i class="fas fa-info-circle"></i> 
-            Enter positive number to add, negative to remove
-        </div>
-    </div>
 
     <div class="table-wrapper">
         <table id="inventoryTable">
@@ -459,12 +436,9 @@
 <script>
     (function() {
         // ---------- CONFIG ----------
-        // UPDATED: Your new Google Apps Script URL
-        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxlIzjVbRkcWdX9A1bpGooGvH-WNw9pyf8reqspeGPNRTQqe06EDEYrpOpRBN876HyHcQ/exec';
         const GOOGLE_SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQz7v74B9qEVB0RNbUqxwVMa5Yvnb2GxLPchxtz_8qyQyZWoT-Q0LIBb443JpvRxcKBXzHAzfaARfHG/pub?output=csv';
 
         let inventory = [];
-        let isUpdating = false;
         let searchQuery = '';
         let selectedWarehouse = null;
 
@@ -475,13 +449,8 @@
         const totalSkuEl = document.getElementById('totalSku');
         const totalQtyEl = document.getElementById('totalQty');
         const lastUpdateEl = document.getElementById('lastUpdate');
-        const brandSelect = document.getElementById('transferBrand');
-        const sizeSelect = document.getElementById('transferSize');
-        const fromSelect = document.getElementById('transferFrom');
-        const qtyInput = document.getElementById('transferQty');
         const whListEl = document.getElementById('whList');
         const whFilterNoteEl = document.getElementById('whFilterNote');
-        const transferBtn = document.getElementById('transferBtn');
         const toast = document.getElementById('toast');
         const toastMsg = document.getElementById('toastMsg');
 
@@ -583,7 +552,6 @@
             if (!inventory.length) {
                 tbody.innerHTML = `<tr class="empty-row"><td colspan="4"><i class="fas fa-database"></i> no tyre data</td></tr>`;
                 updateStats();
-                populateSelects();
                 searchCountEl.style.display = 'none';
                 return;
             }
@@ -624,133 +592,12 @@
             totalQtyEl.textContent = totalQty;
             const now = new Date();
             lastUpdateEl.textContent = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-            populateSelects();
         }
 
         function updateStats() {
             const totalQty = inventory.reduce((acc, i) => acc + i.QTY, 0);
             totalSkuEl.textContent = inventory.length;
             totalQtyEl.textContent = totalQty;
-        }
-
-        function populateSelects() {
-            const brandSet = new Set(inventory.map(i => i.Brand));
-            const currentBrand = brandSelect.value;
-            brandSelect.innerHTML = '<option value="">— brand —</option>' + 
-                Array.from(brandSet).sort().map(b => `<option value="${b}">${b}</option>`).join('');
-            if (currentBrand && brandSet.has(currentBrand)) brandSelect.value = currentBrand;
-
-            const selectedBrand = brandSelect.value;
-            const sizeSet = new Set();
-            inventory.forEach(i => {
-                if (selectedBrand === '' || i.Brand === selectedBrand) sizeSet.add(i.Size);
-            });
-            const currentSize = sizeSelect.value;
-            sizeSelect.innerHTML = '<option value="">— size —</option>' + 
-                Array.from(sizeSet).sort().map(s => `<option value="${s}">${s}</option>`).join('');
-            if (currentSize && sizeSet.has(currentSize)) sizeSelect.value = currentSize;
-
-            const whSet = new Set(inventory.map(i => i.Storeroom));
-            const currentFrom = fromSelect.value;
-            fromSelect.innerHTML = '<option value="">— warehouse —</option>' + 
-                Array.from(whSet).sort().map(w => `<option value="${w}">${w}</option>`).join('');
-            if (currentFrom && whSet.has(currentFrom)) fromSelect.value = currentFrom;
-        }
-
-        async function writeRowToSheet(brand, size, storeroom, newQty) {
-            try {
-                const formData = new URLSearchParams();
-                formData.append('action', 'updateQty');
-                formData.append('brand', brand || '');
-                formData.append('size', size || '');
-                formData.append('storeroom', storeroom || '');
-                formData.append('qty', String(parseInt(newQty, 10) || 0));
-
-                console.log('Sending single-row update to:', APPS_SCRIPT_URL, {
-                    brand, size, storeroom, qty: newQty
-                });
-
-                const response = await fetch(APPS_SCRIPT_URL, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                    },
-                    body: formData.toString()
-                });
-
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}`);
-                }
-
-                const result = await response.json();
-
-                if (result.status !== 'success') {
-                    throw new Error(result.message || 'Apps Script reported an error');
-                }
-
-                showToast('✅ Update sent to Google Sheet');
-                return true;
-            } catch (e) {
-                console.error('Write error:', e);
-                showToast('❌ Failed to update: ' + e.message, true);
-                return false;
-            }
-        }
-
-        async function performTransfer() {
-            if (isUpdating) return;
-            
-            const brand = brandSelect.value;
-            const size = sizeSelect.value;
-            const fromWh = fromSelect.value;
-            const qtyDelta = parseInt(qtyInput.value, 10);
-
-            if (!brand || !size || !fromWh) {
-                showToast('Please select Brand, Size and Warehouse.', true);
-                return;
-            }
-            if (isNaN(qtyDelta) || qtyDelta === 0) {
-                showToast('Enter a valid quantity (positive to add, negative to remove).', true);
-                return;
-            }
-
-            const index = inventory.findIndex(item => 
-                item.Brand === brand && item.Size === size && item.Storeroom === fromWh
-            );
-
-            if (index === -1) {
-                showToast(`❌ No entry found: ${brand} ${size} in ${fromWh}`, true);
-                return;
-            }
-
-            const currentQty = inventory[index].QTY;
-            const newQty = currentQty + qtyDelta;
-            if (newQty < 0) {
-                showToast(`❌ Cannot go below 0. Current: ${currentQty}`, true);
-                return;
-            }
-
-            const oldQty = currentQty;
-            inventory[index].QTY = newQty;
-
-            isUpdating = true;
-            transferBtn.disabled = true;
-            transferBtn.innerHTML = '<i class="fas fa-spinner fa-pulse"></i> syncing…';
-
-            const success = await writeRowToSheet(brand, size, fromWh, newQty);
-
-            if (success) {
-                renderTable();
-                showToast(`✅ ${brand} ${size} in ${fromWh}: ${oldQty} → ${newQty}`);
-            } else {
-                inventory[index].QTY = oldQty;
-                renderTable();
-                showToast('❌ Update failed, changes reverted.', true);
-            }
-
-            isUpdating = false;
-            transferBtn.disabled = false;
-            transferBtn.innerHTML = '<i class="fas fa-pen-to-square"></i> UPDATE';
         }
 
         async function loadInventoryFromGoogleSheet() {
@@ -772,7 +619,6 @@
                     <td colspan="4"><i class="fas fa-triangle-exclamation"></i> unable to load Google Sheet data</td>
                 </tr>`;
                 updateStats();
-                populateSelects();
                 lastUpdateEl.textContent = 'Load failed';
                 showToast('❌ Failed to load sheet data: ' + error.message, true);
             }
@@ -780,8 +626,6 @@
 
         function init() {
             loadInventoryFromGoogleSheet();
-            transferBtn.addEventListener('click', performTransfer);
-            brandSelect.addEventListener('change', populateSelects);
 
             if (whListEl) {
                 whListEl.querySelectorAll('button[data-wh]').forEach(btn => {
@@ -806,99 +650,5 @@
         init();
     })();
 </script>
-
-<!--
-    ============================================================
-    GOOGLE APPS SCRIPT (paste this into Extensions > Apps Script
-    on the Google Sheet, then Deploy > New deployment > Web app)
-    ============================================================
-
-    Deploy settings:
-      - Execute as: Me
-      - Who has access: Anyone
-    Then copy the resulting /exec URL into APPS_SCRIPT_URL above.
-
-    Note: the page now fetches this WITHOUT mode:'no-cors', so it can read
-    the real JSON {status, message} response. Apps Script Web Apps allow
-    this for simple POST requests (form-urlencoded body, no custom headers)
-    without any extra CORS config needed on your end.
-
-    function doPost(e) {
-      try {
-        const params = e.parameter || {};
-
-        if (params.action !== 'updateQty') {
-          throw new Error('Unknown or missing action: ' + params.action);
-        }
-
-        const brand = (params.brand || '').trim();
-        const size = (params.size || '').trim();
-        const storeroom = (params.storeroom || '').trim();
-        const qty = parseInt(params.qty, 10);
-
-        if (!brand || !size || !storeroom || isNaN(qty)) {
-          throw new Error('Missing or invalid fields: ' + JSON.stringify(params));
-        }
-
-        const ss = SpreadsheetApp.getActiveSpreadsheet();
-        const SHEET_NAME = 'First hill app.xlsx';
-        const sheet = ss.getSheetByName(SHEET_NAME);
-        if (!sheet) {
-          throw new Error('Sheet tab not found: "' + SHEET_NAME + '". Available tabs: ' +
-            ss.getSheets().map(s => s.getName()).join(', '));
-        }
-
-        const values = sheet.getDataRange().getValues();
-        const headers = values[0].map(h => String(h).trim().toLowerCase());
-
-        const brandCol = headers.indexOf('brand');
-        const sizeCol = headers.indexOf('size');
-        const qtyCol = headers.indexOf('qty');
-        const storeCol = headers.findIndex(h =>
-          ['storeroom', 'store room', 'warehouse', 'location'].includes(h)
-        );
-
-        if (brandCol === -1 || sizeCol === -1 || qtyCol === -1 || storeCol === -1) {
-          throw new Error('Could not find required columns in headers: ' + headers.join(', '));
-        }
-
-        let rowIndex = -1;
-        for (let i = 1; i < values.length; i++) {
-          if (
-            String(values[i][brandCol]).trim() === brand &&
-            String(values[i][sizeCol]).trim() === size &&
-            String(values[i][storeCol]).trim() === storeroom
-          ) {
-            rowIndex = i;
-            break;
-          }
-        }
-
-        if (rowIndex === -1) {
-          const newRow = [];
-          newRow[brandCol] = brand;
-          newRow[sizeCol] = size;
-          newRow[qtyCol] = qty;
-          newRow[storeCol] = storeroom;
-          sheet.appendRow(newRow);
-          return ContentService
-            .createTextOutput(JSON.stringify({ status: 'success', action: 'inserted' }))
-            .setMimeType(ContentService.MimeType.JSON);
-        }
-
-        sheet.getRange(rowIndex + 1, qtyCol + 1).setValue(qty);
-
-        return ContentService
-          .createTextOutput(JSON.stringify({ status: 'success', action: 'updated', row: rowIndex + 1 }))
-          .setMimeType(ContentService.MimeType.JSON);
-
-      } catch (error) {
-        return ContentService
-          .createTextOutput(JSON.stringify({ status: 'error', message: error.toString() }))
-          .setMimeType(ContentService.MimeType.JSON);
-      }
-    }
-    ============================================================
--->
 </body>
 </html>
