@@ -4,294 +4,651 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Firsthill · tyre stock</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #1a0a0a;
+            color: #f0e6e6;
+            min-height: 100vh;
+            padding: 24px;
+        }
+        .app {
+            max-width: 1440px;
+            margin: 0 auto;
+            background: #1f0f0f;
+            border-radius: 32px;
+            padding: 28px 30px 40px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.7), 0 0 0 1px #4a1a1a;
+            border: 1px solid #5e1e1e;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px 20px;
+            margin-bottom: 32px;
+            border-bottom: 2px solid #8b1e1e;
+            padding-bottom: 20px;
+        }
+        .logo h1 {
+            font-weight: 700;
+            font-size: 2rem;
+            letter-spacing: -0.5px;
+            color: #ff4d4d;
+            text-shadow: 0 0 8px #7a1a1a;
+        }
+        .logo i { color: #ff2a2a; margin-right: 8px; }
+        .logo span {
+            font-weight: 400;
+            color: #d6b0b0;
+            font-size: 0.9rem;
+            margin-left: 12px;
+            background: #2f1212;
+            padding: 4px 14px;
+            border-radius: 40px;
+            border: 1px solid #661c1c;
+        }
+        .warehouse-badge {
+            background: #2b0f0f;
+            padding: 10px 20px;
+            border-radius: 60px;
+            border: 1px solid #982a2a;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 12px 18px;
+        }
+        .warehouse-badge i { color: #ff5e5e; margin-right: 6px; }
+        .wh-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px 14px;
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+        .wh-list button {
+            background: #3d1414;
+            padding: 3px 12px;
+            border-radius: 40px;
+            border: 1px solid #6d2222;
+            color: #f0cfcf;
+            font-family: inherit;
+            font-weight: 500;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: 0.15s;
+        }
+        .wh-list button:hover {
+            background: #521818;
+            border-color: #982a2a;
+        }
+        .wh-list button.active {
+            background: #b32828;
+            border-color: #ff5e5e;
+            color: #fff;
+            box-shadow: 0 0 0 2px #4f1515;
+        }
+        .wh-filter-note {
+            font-size: 0.75rem;
+            color: #b57474;
+            margin: -22px 0 16px 6px;
+        }
+        .stats {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            background: #1b0b0b;
+            padding: 18px 22px;
+            border-radius: 20px;
+            margin-bottom: 32px;
+            border: 1px solid #601d1d;
+            box-shadow: inset 0 2px 6px rgba(0,0,0,0.6);
+        }
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.95rem;
+        }
+        .stat-item i { color: #e63e3e; width: 20px; }
+        .stat-item strong { color: #ff7b7b; font-weight: 700; margin-right: 4px; }
+        .transfer-card {
+            background: #1f0c0c;
+            border-radius: 24px;
+            padding: 20px 24px 24px;
+            margin-bottom: 40px;
+            border: 1px solid #751f1f;
+            box-shadow: 0 6px 12px rgba(0,0,0,0.5);
+        }
+        .transfer-card h3 {
+            color: #ff5e5e;
+            font-weight: 600;
+            font-size: 1.3rem;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .transfer-card h3 i { color: #ff2a2a; }
+        .transfer-grid {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: flex-end;
+            gap: 16px 20px;
+        }
+        .transfer-field {
+            flex: 1 0 140px;
+            min-width: 120px;
+        }
+        .transfer-field label {
+            display: block;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #b57474;
+            margin-bottom: 4px;
+            font-weight: 600;
+        }
+        .transfer-field select, 
+        .transfer-field input {
+            width: 100%;
+            padding: 10px 12px;
+            background: #2e1212;
+            border: 1px solid #681f1f;
+            border-radius: 14px;
+            color: #f0e0e0;
+            font-weight: 500;
+            font-size: 0.9rem;
+            outline: none;
+            transition: 0.2s;
+        }
+        .transfer-field select:focus, 
+        .transfer-field input:focus {
+            border-color: #d43b3b;
+            box-shadow: 0 0 0 3px #4f1515;
+        }
+        .transfer-field select option { background: #1c0a0a; color: #f0e0e0; }
+        .btn-transfer {
+            background: #b32828;
+            border: none;
+            color: white;
+            font-weight: 700;
+            padding: 10px 30px;
+            border-radius: 40px;
+            font-size: 1rem;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            border: 1px solid #d43b3b;
+            transition: 0.15s;
+            box-shadow: 0 4px 0 #621717;
+            transform: translateY(-2px);
+        }
+        .btn-transfer:hover {
+            background: #cc2f2f;
+            box-shadow: 0 6px 0 #521212;
+            transform: translateY(-3px);
+        }
+        .btn-transfer:active {
+            transform: translateY(2px);
+            box-shadow: 0 1px 0 #521212;
+        }
+        .btn-transfer:disabled {
+            opacity: 0.5;
+            transform: translateY(0);
+            box-shadow: 0 2px 0 #621717;
+            pointer-events: none;
+        }
+        .table-wrapper {
+            background: #130707;
+            border-radius: 24px;
+            padding: 6px 4px 4px 4px;
+            border: 1px solid #631d1d;
+            overflow-x: auto;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+            background: #1b0b0b;
+            border-radius: 20px;
+            overflow: hidden;
+        }
+        th {
+            text-align: left;
+            padding: 16px 14px;
+            background: #2d1010;
+            color: #ff8f8f;
+            font-weight: 600;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 2px solid #751f1f;
+        }
+        td {
+            padding: 14px 14px;
+            border-bottom: 1px solid #341212;
+            color: #ebd6d6;
+        }
+        tr:last-child td { border-bottom: none; }
+        .qty-badge {
+            background: #3b1515;
+            padding: 4px 14px;
+            border-radius: 40px;
+            border: 1px solid #7f2828;
+            font-weight: 600;
+            color: #ffb3b3;
+        }
+        .warehouse-tag {
+            background: #281010;
+            padding: 4px 12px;
+            border-radius: 30px;
+            font-size: 0.75rem;
+            border: 1px solid #591d1d;
+            color: #dba8a8;
+            white-space: nowrap;
+        }
+        .brand-tag { font-weight: 500; color: #f0c2c2; }
+        .size-tag { color: #dbb9b9; }
+        .empty-row td {
+            text-align: center;
+            padding: 40px 10px;
+            color: #896060;
+            font-style: italic;
+        }
+        .footnote {
+            margin-top: 20px;
+            text-align: right;
+            font-size: 0.75rem;
+            color: #754a4a;
+            border-top: 1px solid #3d1515;
+            padding-top: 14px;
+        }
+        .footnote i { color: #b33b3b; }
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #2b0f0f;
+            border: 1px solid #d43b3b;
+            color: #f0e0e0;
+            padding: 14px 28px;
+            border-radius: 60px;
+            font-weight: 500;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.8);
+            z-index: 999;
+            display: none;
+            backdrop-filter: blur(4px);
+            max-width: 90%;
+            text-align: center;
+        }
+        .toast.show { display: block; }
+        .toast i { margin-right: 10px; color: #ff5e5e; }
+
+        .search-bar {
+            position: relative;
+            margin-bottom: 20px;
+        }
+        .search-bar i {
+            position: absolute;
+            left: 18px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #b57474;
+            font-size: 0.9rem;
+        }
+        .search-bar input {
+            width: 100%;
+            padding: 14px 18px 14px 44px;
+            background: #1b0b0b;
+            border: 1px solid #631d1d;
+            border-radius: 40px;
+            color: #f0e0e0;
+            font-weight: 500;
+            font-size: 0.95rem;
+            outline: none;
+            transition: 0.2s;
+        }
+        .search-bar input::placeholder { color: #7a5050; }
+        .search-bar input:focus {
+            border-color: #d43b3b;
+            box-shadow: 0 0 0 3px #4f1515;
+        }
+        .search-bar .clear-search {
+            position: absolute;
+            right: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #b57474;
+            font-size: 0.9rem;
+            cursor: pointer;
+            padding: 4px;
+            display: none;
+        }
+        .search-bar .clear-search.show { display: block; }
+        .search-count {
+            font-size: 0.75rem;
+            color: #9f5f5f;
+            margin: -10px 0 16px 6px;
+        }
+
+        @media (max-width: 700px) {
+            body { padding: 10px; }
+            .app { padding: 16px 12px 28px; border-radius: 20px; }
+            .header { flex-direction: column; align-items: start; margin-bottom: 20px; }
+            .logo h1 { font-size: 1.4rem; }
+            .logo h1 br { display: none; }
+            .logo span { margin-left: 0; margin-top: 6px; display: inline-block; }
+            .warehouse-badge { padding: 8px 14px; width: 100%; }
+            .wh-list { font-size: 0.8rem; }
+            .stats { flex-direction: column; align-items: flex-start; gap: 10px; padding: 14px 16px; }
+            .transfer-card { padding: 16px 14px 18px; margin-bottom: 24px; }
+            .transfer-grid { flex-direction: column; align-items: stretch; }
+            .transfer-field { min-width: 0; }
+            .btn-transfer { width: 100%; justify-content: center; }
+            table { font-size: 0.82rem; }
+            th, td { padding: 10px 8px; }
+            th { font-size: 0.68rem; }
+            .search-bar input { padding: 12px 16px 12px 40px; font-size: 0.9rem; }
+        }
+
+        @media (max-width: 480px) {
+            .table-wrapper { border-radius: 16px; margin: 0 -4px; }
+            table, thead, tbody, th, td, tr { display: block; }
+            thead tr { position: absolute; top: -9999px; left: -9999px; }
+            tbody tr {
+                background: #1b0b0b;
+                border-bottom: 1px solid #341212;
+                padding: 12px 14px;
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 8px 10px;
+            }
+            tbody tr.empty-row { display: block; padding: 30px 10px; }
+            td { border: none; padding: 0; }
+            td:before {
+                content: attr(data-label);
+                display: block;
+                font-size: 0.65rem;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+                color: #b57474;
+                font-weight: 600;
+                margin-bottom: 4px;
+            }
+            .qty-badge, .warehouse-tag { display: inline-block; }
+        }
+    </style>
 </head>
 <body>
 <div class="app">
-    <div id="fhNav"></div>
-
-    <div class="page-head">
-        <div>
-            <h1>Tyre stock</h1>
-            <p id="syncNote">Loading…</p>
+    <div class="header">
+        <div class="logo">
+            <h1><i class="fas fa-warehouse"></i> Firsthill stock tracker <span>tyre warehouse</span></h1>
         </div>
-        <a href="update.html" class="btn"><i class="fas fa-pen-to-square"></i> Update quantity</a>
-    </div>
-
-    <div class="kpis">
-        <div class="kpi"><div class="v" id="kSku">–</div><div class="l">Tyre lines in stock</div></div>
-        <div class="kpi"><div class="v" id="kQty">–</div><div class="l">Tyres on hand</div></div>
-        <div class="kpi warn clickable" data-jump="low"><div class="v" id="kLow">–</div><div class="l">Low stock</div></div>
-        <div class="kpi bad clickable" data-jump="out"><div class="v" id="kOut">–</div><div class="l">Out of stock</div></div>
-    </div>
-
-    <details class="reorder" id="reorder" style="display:none;"></details>
-
-    <div class="toolbar">
-        <div class="chips" id="whChips"></div>
-    </div>
-    <div class="toolbar">
-        <div class="chips" id="statusChips">
-            <button type="button" class="chip active" data-status="all">All</button>
-            <button type="button" class="chip" data-status="low">Low stock <span class="n" id="nLow"></span></button>
-            <button type="button" class="chip" data-status="out">Out of stock <span class="n" id="nOut"></span></button>
-            <button type="button" class="chip" data-status="old">Oldest first</button>
+        <div class="warehouse-badge">
+            <i class="fas fa-location-dot"></i>
+            <div class="wh-list" id="whList">
+                <button type="button" data-wh="Op1">Op1</button><button type="button" data-wh="Op2">Op2</button><button type="button" data-wh="Op3">Op3</button><button type="button" data-wh="Op4">Op4</button>
+                <button type="button" data-wh="A1">A1</button><button type="button" data-wh="A2">A2</button><button type="button" data-wh="A3">A3</button><button type="button" data-wh="ShopB">ShopB</button><button type="button" data-wh="Ketan">Ketan</button>
+            </div>
         </div>
-        <label style="font-size:0.82rem; color:var(--muted);">Sort
-            <select id="sortSel">
-                <option value="brand">Brand A–Z</option>
-                <option value="qtyAsc">Quantity, lowest first</option>
-                <option value="qtyDesc">Quantity, highest first</option>
-                <option value="oldest">Oldest stock first</option>
-                <option value="recent">Most recently received</option>
-            </select>
-        </label>
+    </div>
+
+    <div style="display:flex; justify-content:flex-end; gap:10px; flex-wrap:wrap; margin-bottom:20px;">
+        <a href="history.html" style="text-decoration:none; color:#dba8a8; font-size:0.9rem; background:#2f1212; padding:8px 16px; border-radius:40px; border:1px solid #661c1c; display:inline-flex; align-items:center; gap:6px;"><i class="fas fa-clock-rotate-left"></i> history</a>
+        <a href="update.html" class="btn-transfer" style="text-decoration:none;"><i class="fas fa-pen-to-square"></i> UPDATE QUANTITY</a>
+    </div>
+
+    <div class="wh-filter-note" id="whFilterNote" style="display:none;"></div>
+
+    <div class="stats" id="statsContainer">
+        <div class="stat-item"><i class="fas fa-boxes"></i> Total SKU: <strong id="totalSku">0</strong></div>
+        <div class="stat-item"><i class="fas fa-cubes"></i> Total QTY: <strong id="totalQty">0</strong></div>
+        <div class="stat-item"><i class="fas fa-cloud"></i> Google Sheet: <span id="lastUpdate">loading…</span></div>
     </div>
 
     <div class="search-bar">
         <i class="fas fa-magnifying-glass"></i>
         <input type="text" id="searchInput" placeholder="Search brand, size or storeroom…" autocomplete="off">
-        <i class="fas fa-circle-xmark clear-search" id="clearSearch" role="button" aria-label="Clear search"></i>
+        <i class="fas fa-circle-xmark clear-search" id="clearSearch"></i>
     </div>
-    <div class="count-note" id="countNote" style="display:none;"></div>
+    <div class="search-count" id="searchCount" style="display:none;"></div>
 
     <div class="table-wrapper">
-        <table class="cards">
-            <thead><tr><th>Brand</th><th>Size</th><th>Qty</th><th>Storeroom</th><th>Last received</th><th>Oldest stock on hand</th></tr></thead>
+        <table id="inventoryTable">
+            <thead><tr><th>Brand</th><th>Size</th><th>QTY</th><th>Storeroom</th></tr></thead>
             <tbody id="tableBody">
-                <tr class="empty-row"><td colspan="6"><i class="fas fa-spinner fa-pulse"></i> Loading stock…</td></tr>
+                <tr class="empty-row"><td colspan="4"><i class="fas fa-spinner fa-pulse"></i> loading data …</td></tr>
             </tbody>
         </table>
     </div>
-    <p class="hint"><i class="fas fa-circle-info"></i> <strong style="color:#7bffa0">Use first</strong> marks the storeroom holding the oldest stock of that tyre. Ages are worked out from the update history, so stock that was already on the shelf before history logging started shows as "from before tracking".</p>
-    <div class="footnote">FirstHill (pty) ltd · live sync</div>
+    <div class="footnote"><i class="fas fa-cloud-upload-alt"></i> FirstHill (pty) ltd · live sync</div>
 </div>
 
-<script src="common.js"></script>
-<script>
-    (function () {
-        const me = FH.requireLogin('index.html');
-        if (!me) return;
-        const esc = FH.esc;
+<div id="toast" class="toast"><i class="fas fa-check-circle"></i> <span id="toastMsg">done</span></div>
 
-        let items = [];
-        let lowDefault = 4;
-        let wh = null;
-        let statusFilter = 'all';
-        let sortBy = 'brand';
-        let query = '';
+<script>
+    (function() {
+        // ---------- CONFIG ----------
+        const GOOGLE_SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQz7v74B9qEVB0RNbUqxwVMa5Yvnb2GxLPchxtz_8qyQyZWoT-Q0LIBb443JpvRxcKBXzHAzfaARfHG/pub?output=csv';
+
+        let inventory = [];
+        let searchQuery = '';
+        let selectedWarehouse = null;
 
         const tbody = document.getElementById('tableBody');
         const searchInput = document.getElementById('searchInput');
         const clearSearch = document.getElementById('clearSearch');
-        const countNote = document.getElementById('countNote');
-        const sortSel = document.getElementById('sortSel');
-        const reorderEl = document.getElementById('reorder');
+        const searchCountEl = document.getElementById('searchCount');
+        const totalSkuEl = document.getElementById('totalSku');
+        const totalQtyEl = document.getElementById('totalQty');
+        const lastUpdateEl = document.getElementById('lastUpdate');
+        const whListEl = document.getElementById('whList');
+        const whFilterNoteEl = document.getElementById('whFilterNote');
+        const toast = document.getElementById('toast');
+        const toastMsg = document.getElementById('toastMsg');
 
-        function enrich() {
-            items.forEach(i => { i.status = FH.statusOf(i, lowDefault); i.level = FH.levelOf(i, lowDefault); });
-            FH.markUseFirst(items);
+        function showToast(msg, isError = false) {
+            toastMsg.textContent = msg;
+            toast.style.display = 'block';
+            toast.style.borderColor = isError ? '#b33b3b' : '#43b33b';
+            toast.querySelector('i').className = isError ? 'fas fa-exclamation-circle' : 'fas fa-check-circle';
+            clearTimeout(toast._timer);
+            toast._timer = setTimeout(() => { toast.style.display = 'none'; }, 4000);
         }
 
-        // ---------- warehouse chips ----------
-        function renderWhChips() {
-            const stores = [...new Set(items.map(i => i.storeroom))].filter(Boolean).sort(FH.naturalSort);
-            const el = document.getElementById('whChips');
-            el.innerHTML = `<i class="fas fa-location-dot" style="color:#ff5e5e"></i>
-                <button type="button" class="chip ${wh ? '' : 'active'}" data-wh="">All storerooms</button>` +
-                stores.map(s => `<button type="button" class="chip ${wh === s ? 'active' : ''}" data-wh="${esc(s)}">${esc(s)}</button>`).join('');
-            el.querySelectorAll('button').forEach(b => b.addEventListener('click', () => {
-                wh = b.dataset.wh || null;
-                renderWhChips();
-                render();
-            }));
-        }
-
-        // ---------- KPIs ----------
-        function renderKpis() {
-            const scope = wh ? items.filter(i => i.storeroom === wh) : items;
-            const low = scope.filter(i => i.status === 'low').length;
-            const out = scope.filter(i => i.status === 'out').length;
-            document.getElementById('kSku').textContent = scope.filter(i => i.qty > 0).length;
-            document.getElementById('kQty').textContent = scope.reduce((a, i) => a + i.qty, 0).toLocaleString('en-GB');
-            document.getElementById('kLow').textContent = low;
-            document.getElementById('kOut').textContent = out;
-            document.getElementById('nLow').textContent = low + out;
-            document.getElementById('nOut').textContent = out;
-        }
-
-        // ---------- reorder list ----------
-        function buildReorder() {
-            const groups = {};
-            items.forEach(i => (groups[FH.keyOf(i.brand, i.size, '')] ||= []).push(i));
+        function parseCSV(csvText) {
             const rows = [];
-            Object.values(groups).forEach(g => {
-                const needing = g.filter(i => (i.status === 'low' || i.status === 'out') && (!wh || i.storeroom === wh));
-                if (!needing.length) return;
-                const spare = g.filter(i => i.status === 'ok' && i.qty > i.level && !needing.includes(i))
-                               .map(i => ({ store: i.storeroom, spare: i.qty - Math.max(i.level, 0) }))
-                               .sort((a, b) => b.spare - a.spare);
-                rows.push({ brand: g[0].brand, size: g[0].size, needing, spare,
-                            urgency: Math.min(...needing.map(n => n.qty - n.level)) });
-            });
-            rows.sort((a, b) => a.urgency - b.urgency || FH.naturalSort(a.brand + a.size, b.brand + b.size));
-            return rows;
-        }
-
-        function renderReorder() {
-            const rows = buildReorder();
-            reorderEl.style.display = '';
-            if (!rows.length) {
-                reorderEl.className = 'reorder clear';
-                reorderEl.removeAttribute('open');
-                reorderEl.innerHTML = `<summary><i class="fas fa-circle-check"></i> Nothing needs ordering${wh ? ' in ' + esc(wh) : ''} right now</summary>`;
-                return;
+            let row = [], field = '', inQuotes = false;
+            for (let i = 0; i < csvText.length; i++) {
+                const ch = csvText[i];
+                if (ch === '"') {
+                    if (inQuotes && csvText[i + 1] === '"') { field += '"'; i++; }
+                    else { inQuotes = !inQuotes; }
+                } else if (ch === ',' && !inQuotes) {
+                    row.push(field.trim());
+                    field = '';
+                } else if ((ch === '\n' || ch === '\r') && !inQuotes) {
+                    if (ch === '\r' && csvText[i + 1] === '\n') i++;
+                    row.push(field.trim());
+                    field = '';
+                    if (row.some(v => v !== '')) rows.push(row);
+                    row = [];
+                } else {
+                    field += ch;
+                }
             }
-            const wasOpen = reorderEl.hasAttribute('open') || reorderEl.dataset.init !== '1';
-            reorderEl.dataset.init = '1';
-            reorderEl.className = 'reorder';
-            reorderEl.innerHTML = `
-                <summary><i class="fas fa-truck-ramp-box"></i> ${rows.length} tyre${rows.length === 1 ? '' : 's'} to reorder${wh ? ' for ' + esc(wh) : ''}
-                    <i class="fas fa-chevron-down chev"></i></summary>
-                <div class="reorder-body">
-                    ${rows.map(r => `<div class="reorder-item">
-                        <div class="tyre">${esc(r.brand)} ${esc(r.size)}</div>
-                        <div class="where">
-                            ${r.needing.map(n => `<span style="white-space:nowrap">${esc(n.storeroom)}: <strong>${n.qty}</strong>${n.qty === 0 ? ' (out)' : ` (alert at ${n.level})`}</span>`).join(' &nbsp;·&nbsp; ')}
-                            ${r.spare.length ? `<span class="spare"><i class="fas fa-right-left"></i> Could move instead: ${r.spare.slice(0, 3).map(s => `${esc(s.store)} has ${s.spare} spare`).join(', ')}</span>` : ''}
-                        </div>
-                    </div>`).join('')}
-                    <div class="reorder-actions">
-                        <button type="button" class="btn btn-ghost" id="copyOrder"><i class="fas fa-copy"></i> Copy order list</button>
-                        <button type="button" class="btn btn-ghost" id="showLow"><i class="fas fa-filter"></i> Show these in the table</button>
-                    </div>
-                </div>`;
-            if (wasOpen) reorderEl.setAttribute('open', '');
-
-            document.getElementById('copyOrder').addEventListener('click', async () => {
-                const text = 'Firsthill tyre order list' + (wh ? ' – ' + wh : '') + ' (' + FH.fmtDate(new Date()) + ')\n\n' +
-                    rows.map(r => `${r.brand} ${r.size}: ` + r.needing.map(n => `${n.storeroom} has ${n.qty}`).join(', ')).join('\n');
-                try { await navigator.clipboard.writeText(text); FH.toast('Order list copied'); }
-                catch (e) { FH.toast('Could not copy. Select the list and copy it manually.', true); }
-            });
-            document.getElementById('showLow').addEventListener('click', () => setStatus('low'));
-        }
-
-        // ---------- table ----------
-        function setStatus(s) {
-            statusFilter = s;
-            if (s === 'old') { sortBy = 'oldest'; sortSel.value = 'oldest'; }
-            document.querySelectorAll('#statusChips .chip').forEach(c => c.classList.toggle('active', c.dataset.status === s));
-            render();
-        }
-
-        function filtered() {
-            let list = items;
-            if (wh) list = list.filter(i => i.storeroom === wh);
-            if (statusFilter === 'low') list = list.filter(i => i.status === 'low' || i.status === 'out');
-            else if (statusFilter === 'out') list = list.filter(i => i.status === 'out');
-            else if (statusFilter === 'old') list = list.filter(i => i.qty > 0);
-            if (query) {
-                const q = query.toLowerCase();
-                list = list.filter(i => [i.brand, i.size, i.storeroom].some(v => String(v).toLowerCase().includes(q)));
+            if (field !== '' || row.length) {
+                row.push(field.trim());
+                if (row.some(v => v !== '')) rows.push(row);
             }
-            const by = {
-                brand: (a, b) => FH.naturalSort(a.brand, b.brand) || FH.naturalSort(a.size, b.size) || FH.naturalSort(a.storeroom, b.storeroom),
-                qtyAsc: (a, b) => a.qty - b.qty,
-                qtyDesc: (a, b) => b.qty - a.qty,
-                oldest: (a, b) => (FH.oldestTs(a) ?? 1e15) - (FH.oldestTs(b) ?? 1e15),
-                recent: (a, b) => (FH.toDate(b.lastIn)?.getTime() || 0) - (FH.toDate(a.lastIn)?.getTime() || 0)
-            };
-            return list.slice().sort(by[sortBy] || by.brand);
+            if (rows.length < 2) return [];
+            const headers = rows[0].map(h => h.trim());
+            return rows.slice(1).map(values => {
+                const obj = {};
+                headers.forEach((h, idx) => {
+                    let val = values[idx] ?? '';
+                    if (h.toLowerCase() === 'qty') {
+                        val = parseInt(String(val).replace(/,/g, ''), 10) || 0;
+                    }
+                    obj[h] = val;
+                });
+                const qtyKey = headers.find(h => h.toLowerCase() === 'qty');
+                const brandKey = headers.find(h => h.toLowerCase() === 'brand');
+                const sizeKey = headers.find(h => h.toLowerCase() === 'size');
+                const storeKey = headers.find(h =>
+                    ['storeroom', 'store room', 'warehouse', 'location'].includes(h.toLowerCase())
+                );
+                return {
+                    Brand: brandKey ? obj[brandKey] : '',
+                    Size: sizeKey ? obj[sizeKey] : '',
+                    QTY: qtyKey ? Number(obj[qtyKey]) || 0 : 0,
+                    Storeroom: storeKey ? obj[storeKey] : ''
+                };
+            }).filter(item => item.Brand || item.Size || item.Storeroom);
         }
 
-        function oldestCell(i) {
-            if (i.qty <= 0) return '<span class="date-cell">—</span>';
-            let html;
-            if (i.untracked > 0) {
-                html = `<span class="date-cell">From before tracking<small>${i.untracked} of ${i.qty} tyres</small></span>`;
-            } else if (i.oldestIn) {
-                html = `<span class="date-cell">${FH.fmtDate(i.oldestIn)}<small>${FH.ageText(i.oldestIn)} · ${i.oldestQty} tyre${i.oldestQty === 1 ? '' : 's'} from this batch</small></span>`;
+        function getFilteredInventory() {
+            let items = inventory;
+            if (selectedWarehouse) {
+                items = items.filter(item => String(item.Storeroom) === selectedWarehouse);
+            }
+            if (!searchQuery) return items;
+            const q = searchQuery.toLowerCase();
+            return items.filter(item =>
+                String(item.Brand).toLowerCase().includes(q) ||
+                String(item.Size).toLowerCase().includes(q) ||
+                String(item.Storeroom).toLowerCase().includes(q)
+            );
+        }
+
+        function updateWhFilterNote() {
+            if (selectedWarehouse) {
+                whFilterNoteEl.style.display = 'block';
+                whFilterNoteEl.innerHTML = `<i class="fas fa-filter"></i> showing only <strong>${selectedWarehouse}</strong> — click it again to clear`;
             } else {
-                html = '<span class="date-cell">—</span>';
+                whFilterNoteEl.style.display = 'none';
             }
-            if (i.useFirst) html += `<br><span class="tag-first"><i class="fas fa-arrow-turn-down"></i> Use first</span>`;
-            return html;
         }
 
-        function qtyCell(i) {
-            const cls = i.status === 'ok' ? '' : i.status;
-            let note = '';
-            if (i.status === 'low') note = `<span class="status-note">Low · alert at ${i.level}</span>`;
-            if (i.status === 'out') note = `<span class="status-note out">Out of stock</span>`;
-            return `<span class="qty-badge ${cls}">${i.qty}</span>${note}`;
+        function setWarehouseFilter(wh) {
+            selectedWarehouse = (selectedWarehouse === wh) ? null : wh;
+            if (whListEl) {
+                whListEl.querySelectorAll('button').forEach(btn => {
+                    btn.classList.toggle('active', btn.dataset.wh === selectedWarehouse);
+                });
+            }
+            updateWhFilterNote();
+            renderTable();
         }
 
-        function render() {
-            renderKpis();
-            renderReorder();
-            if (!items.length) {
-                tbody.innerHTML = `<tr class="empty-row"><td colspan="6"><i class="fas fa-database"></i> No tyres in the sheet yet. Add stock on the Update page.</td></tr>`;
-                countNote.style.display = 'none';
+        function renderTable() {
+            if (!inventory.length) {
+                tbody.innerHTML = `<tr class="empty-row"><td colspan="4"><i class="fas fa-database"></i> no tyre data</td></tr>`;
+                updateStats();
+                searchCountEl.style.display = 'none';
                 return;
             }
-            const list = filtered();
-            const scopeTxt = wh ? ` in ${wh}` : '';
-            if (query || wh || statusFilter !== 'all') {
-                countNote.style.display = 'block';
-                countNote.textContent = `${list.length} line${list.length === 1 ? '' : 's'}${scopeTxt}` + (query ? ` matching "${query}"` : '');
-            } else countNote.style.display = 'none';
 
-            if (!list.length) {
-                const msg = statusFilter === 'low' ? `No low stock${scopeTxt}.` :
-                            statusFilter === 'out' ? `Nothing out of stock${scopeTxt}.` :
-                            query ? `No matches for "${esc(query)}"${scopeTxt}.` : `No tyres${scopeTxt}.`;
-                tbody.innerHTML = `<tr class="empty-row"><td colspan="6">${msg}</td></tr>`;
-                return;
+            const filtered = getFilteredInventory();
+
+            if (searchQuery) {
+                searchCountEl.style.display = 'block';
+                searchCountEl.textContent = `${filtered.length} of ${inventory.length} items match "${searchQuery}"` +
+                    (selectedWarehouse ? ` in ${selectedWarehouse}` : '');
+            } else if (selectedWarehouse) {
+                searchCountEl.style.display = 'block';
+                searchCountEl.textContent = `${filtered.length} item${filtered.length === 1 ? '' : 's'} in ${selectedWarehouse}`;
+            } else {
+                searchCountEl.style.display = 'none';
             }
-            tbody.innerHTML = list.map(i => `<tr>
-                <td data-label="Brand"><span class="brand-tag">${esc(i.brand)}</span></td>
-                <td data-label="Size"><span class="size-tag">${esc(i.size)}</span></td>
-                <td data-label="Qty">${qtyCell(i)}</td>
-                <td data-label="Storeroom"><span class="wh-tag"><i class="fas fa-warehouse" style="margin-right:4px;"></i>${esc(i.storeroom)}</span></td>
-                <td data-label="Last received"><span class="date-cell">${i.lastIn ? FH.fmtDate(i.lastIn) + `<small>${FH.ageText(i.lastIn)}</small>` : '—'}</span></td>
-                <td data-label="Oldest stock">${oldestCell(i)}</td>
-            </tr>`).join('');
+
+            if (!filtered.length) {
+                const msg = searchQuery
+                    ? `no matches for "${searchQuery}"${selectedWarehouse ? ` in ${selectedWarehouse}` : ''}`
+                    : `no tyres found in ${selectedWarehouse}`;
+                tbody.innerHTML = `<tr class="empty-row"><td colspan="4"><i class="fas fa-magnifying-glass"></i> ${msg}</td></tr>`;
+            } else {
+                let html = '';
+                filtered.forEach(item => {
+                    html += `<tr>
+                        <td data-label="Brand"><span class="brand-tag"><i class="fas fa-circle" style="color:#c53535; font-size:0.5rem; margin-right:6px;"></i>${item.Brand}</span></td>
+                        <td data-label="Size"><span class="size-tag">${item.Size}</span></td>
+                        <td data-label="QTY"><span class="qty-badge">${item.QTY}</span></td>
+                        <td data-label="Storeroom"><span class="warehouse-tag"><i class="fas fa-warehouse" style="margin-right:4px;"></i>${item.Storeroom}</span></td>
+                    </tr>`;
+                });
+                tbody.innerHTML = html;
+            }
+
+            const totalQty = inventory.reduce((acc, i) => acc + i.QTY, 0);
+            totalSkuEl.textContent = inventory.length;
+            totalQtyEl.textContent = totalQty;
+            const now = new Date();
+            lastUpdateEl.textContent = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
         }
 
-        async function load() {
+        function updateStats() {
+            const totalQty = inventory.reduce((acc, i) => acc + i.QTY, 0);
+            totalSkuEl.textContent = inventory.length;
+            totalQtyEl.textContent = totalQty;
+        }
+
+        async function loadInventoryFromGoogleSheet() {
             try {
-                const data = await FH.api('getInventory');
-                items = data.items || [];
-                lowDefault = Number(data.lowDefault) || 0;
-                enrich();
-                renderWhChips();
-                render();
-                document.getElementById('syncNote').textContent =
-                    `Synced ${new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })} · low-stock alert at ${lowDefault} unless set per tyre`;
-            } catch (err) {
-                tbody.innerHTML = `<tr class="empty-row"><td colspan="6"><i class="fas fa-triangle-exclamation"></i> Couldn't load stock: ${esc(err.message)}</td></tr>`;
-                document.getElementById('syncNote').textContent = 'Load failed';
+                console.log('Loading from CSV URL:', GOOGLE_SHEET_CSV_URL);
+                const response = await fetch(GOOGLE_SHEET_CSV_URL, { cache: 'no-store' });
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const csvText = await response.text();
+                console.log('CSV loaded, length:', csvText.length);
+                const parsed = parseCSV(csvText);
+                if (!parsed.length) throw new Error('No data rows found.');
+                inventory = parsed;
+                renderTable();
+                showToast('📥 Inventory loaded from Google Sheet');
+            } catch (error) {
+                console.error('Load error:', error);
+                inventory = [];
+                tbody.innerHTML = `<tr class="empty-row">
+                    <td colspan="4"><i class="fas fa-triangle-exclamation"></i> unable to load Google Sheet data</td>
+                </tr>`;
+                updateStats();
+                lastUpdateEl.textContent = 'Load failed';
+                showToast('❌ Failed to load sheet data: ' + error.message, true);
             }
         }
 
-        document.querySelectorAll('#statusChips .chip').forEach(c => c.addEventListener('click', () => setStatus(c.dataset.status)));
-        document.querySelectorAll('.kpi[data-jump]').forEach(k => k.addEventListener('click', () => setStatus(k.dataset.jump)));
-        sortSel.addEventListener('change', () => { sortBy = sortSel.value; render(); });
-        searchInput.addEventListener('input', () => {
-            query = searchInput.value.trim();
-            clearSearch.classList.toggle('show', query.length > 0);
-            render();
-        });
-        clearSearch.addEventListener('click', () => {
-            searchInput.value = ''; query = '';
-            clearSearch.classList.remove('show');
-            render(); searchInput.focus();
-        });
+        function init() {
+            loadInventoryFromGoogleSheet();
 
-        load();
+            if (whListEl) {
+                whListEl.querySelectorAll('button[data-wh]').forEach(btn => {
+                    btn.addEventListener('click', () => setWarehouseFilter(btn.dataset.wh));
+                });
+            }
+
+            searchInput.addEventListener('input', () => {
+                searchQuery = searchInput.value.trim();
+                clearSearch.classList.toggle('show', searchQuery.length > 0);
+                renderTable();
+            });
+            clearSearch.addEventListener('click', () => {
+                searchInput.value = '';
+                searchQuery = '';
+                clearSearch.classList.remove('show');
+                renderTable();
+                searchInput.focus();
+            });
+        }
+
+        init();
     })();
 </script>
 </body>
