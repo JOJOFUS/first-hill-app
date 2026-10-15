@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Firsthill · users</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="app">
+    <div id="fhNav"></div>
+
+    <div class="page-head">
+        <div>
+            <h1 id="pageTitle">Users</h1>
+            <p id="pageSub">Add people who can use the stock tracker, and revoke access when someone leaves.</p>
+        </div>
+    </div>
+
+    <div id="adminArea" style="display:none;">
+        <div class="panel">
+            <h2><i class="fas fa-user-plus"></i> Add a user</h2>
+            <form class="form-grid" id="addForm" autocomplete="off">
+                <div class="field">
+                    <label for="aName">Full name</label>
+                    <input type="text" id="aName" placeholder="e.g. Thabo Molefe">
+                </div>
+                <div class="field">
+                    <label for="aUser">Username</label>
+                    <input type="text" id="aUser" placeholder="e.g. thabo" autocapitalize="none" spellcheck="false">
+                </div>
+                <div class="field">
+                    <label for="aPass">Starting password</label>
+                    <input type="text" id="aPass" placeholder="at least 6 characters">
+                </div>
+                <div class="field" style="flex:0 0 140px;">
+                    <label for="aRole">Role</label>
+                    <select id="aRole">
+                        <option value="staff">Staff</option>
+                        <option value="admin">Admin</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn" id="addBtn"><i class="fas fa-user-plus"></i> Add user</button>
+            </form>
+            <p class="hint">Staff can view stock, update quantities, and see history and stats. Admins can also manage users and settings. Give the person their username and starting password; they can change it under Account.</p>
+        </div>
+
+        <div class="panel">
+            <h2><i class="fas fa-users"></i> People with access</h2>
+            <div class="table-wrapper">
+                <table class="cards">
+                    <thead><tr><th>Name</th><th>Username</th><th>Role</th><th>Status</th><th>Last sign-in</th><th>Actions</th></tr></thead>
+                    <tbody id="usersBody"><tr class="empty-row"><td colspan="6"><i class="fas fa-spinner fa-pulse"></i> Loading users…</td></tr></tbody>
+                </table>
+            </div>
+            <p class="hint">Revoking signs the person out on every device straight away. Their past updates stay in the history.</p>
+        </div>
+
+        <div class="panel">
+            <h2><i class="fas fa-bell"></i> Low-stock alert</h2>
+            <form class="form-grid" id="settingsForm">
+                <div class="field" style="flex:0 1 260px;">
+                    <label for="lowDefault">Flag a tyre as low when it has this many or fewer</label>
+                    <input type="number" id="lowDefault" min="0" max="999" step="1">
+                </div>
+                <button type="submit" class="btn btn-ghost" id="saveSettings" style="padding:11px 20px;"><i class="fas fa-floppy-disk"></i> Save</button>
+            </form>
+            <p class="hint">This applies to every tyre in every storeroom. To set a different level for one tyre, add a column named <strong>Min</strong> to the stock sheet and type the level on that tyre's row. A Min of 0 turns alerts off for that tyre (useful for sizes you've stopped selling).</p>
+        </div>
+    </div>
+
+    <div class="panel" style="max-width:640px;">
+        <h2><i class="fas fa-key"></i> Change my password</h2>
+        <form class="form-grid" id="pwForm">
+            <div class="field">
+                <label for="oldPw">Current password</label>
+                <input type="password" id="oldPw" autocomplete="current-password">
+            </div>
+            <div class="field">
+                <label for="newPw">New password</label>
+                <input type="password" id="newPw" autocomplete="new-password" placeholder="at least 6 characters">
+            </div>
+            <button type="submit" class="btn btn-ghost" style="padding:11px 20px;"><i class="fas fa-key"></i> Change password</button>
+        </form>
+    </div>
+
+    <div class="footnote">FirstHill (pty) ltd</div>
+</div>
+
+<script src="common.js"></script>
+<script>
+    (function () {
+        const me = FH.requireLogin('users.html');
+        if (!me) return;
+        const esc = FH.esc;
+        const admin = me.role === 'admin';
+        const $ = id => document.getElementById(id);
+
+        if (!admin) {
+            $('pageTitle').textContent = 'My account';
+            $('pageSub').textContent = `Signed in as ${me.name || me.username}.`;
+        } else {
+            $('adminArea').style.display = '';
+        }
+
+        function renderUsers(users) {
+            const body = $('usersBody');
+            if (!users.length) { body.innerHTML = `<tr class="empty-row"><td colspan="6">No users yet.</td></tr>`; return; }
+            users.sort((a, b) => (b.active - a.active) || FH.naturalSort(a.name || a.username, b.name || b.username));
+            body.innerHTML = users.map(u => {
+                const isMe = u.username.toLowerCase() === me.username.toLowerCase();
+                const actions = [];
+                if (!isMe) {
+                    actions.push(u.active
+                        ? `<button type="button" class="btn btn-danger btn-small" data-act="revoke" data-u="${esc(u.username)}"><i class="fas fa-user-slash"></i> Revoke</button>`
+                        : `<button type="button" class="btn btn-good btn-small" data-act="restore" data-u="${esc(u.username)}"><i class="fas fa-user-check"></i> Restore</button>`);
+                    actions.push(`<button type="button" class="btn btn-ghost btn-small" data-act="role" data-u="${esc(u.username)}" data-role="${u.role === 'admin' ? 'staff' : 'admin'}">Make ${u.role === 'admin' ? 'staff' : 'admin'}</button>`);
+                }
+                if (!isMe) actions.push(`<button type="button" class="btn btn-ghost btn-small" data-act="reset" data-u="${esc(u.username)}"><i class="fas fa-key"></i> Reset password</button>`);
+                if (isMe) actions.push('<span style="color:var(--faint); font-size:0.8rem;">Use "Change my password" below</span>');
+                return `<tr class="${u.active ? '' : 'revoked'}">
+                    <td data-label="Name"><strong>${esc(u.name || u.username)}</strong>${isMe ? ' <span style="color:var(--faint)">(you)</span>' : ''}</td>
+                    <td data-label="Username">${esc(u.username)}</td>
+                    <td data-label="Role">${esc(u.role)}</td>
+                    <td data-label="Status"><span class="status-pill ${u.active ? 'active' : 'revoked'}">${u.active ? 'Active' : 'Revoked'}</span></td>
+                    <td data-label="Last sign-in"><span class="date-cell">${u.lastLogin ? FH.fmtDateTime(u.lastLogin) : 'Never'}</span></td>
+                    <td data-label="Actions"><div class="row-actions">${actions.join('')}</div></td>
+                </tr>`;
+            }).join('');
+        }
+
+        async function loadUsers() {
+            try {
+                const res = await FH.api('listUsers');
+                renderUsers(res.users || []);
+            } catch (err) {
+                $('usersBody').innerHTML = `<tr class="empty-row"><td colspan="6">Couldn't load users: ${esc(err.message)}</td></tr>`;
+            }
+        }
+
+        async function loadSettings() {
+            try {
+                const res = await FH.api('getSettings');
+                $('lowDefault').value = res.lowDefault;
+            } catch (err) { FH.toast(err.message, true); }
+        }
+
+        if (admin) {
+            $('addForm').addEventListener('submit', async e => {
+                e.preventDefault();
+                const name = $('aName').value.trim();
+                const username = $('aUser').value.trim();
+                const password = $('aPass').value;
+                const role = $('aRole').value;
+                if (!username || !password) return FH.toast('Enter a username and starting password.', true);
+                if (password.length < 6) return FH.toast('Password must be at least 6 characters.', true);
+                const btn = $('addBtn');
+                btn.disabled = true;
+                try {
+                    const res = await FH.api('addUser', { name, username, password, role });
+                    renderUsers(res.users || []);
+                    $('addForm').reset();
+                    FH.toast(`Added ${name || username}`);
+                } catch (err) { FH.toast(err.message, true); }
+                btn.disabled = false;
+            });
+
+            $('usersBody').addEventListener('click', async e => {
+                const b = e.target.closest('button[data-act]');
+                if (!b) return;
+                const username = b.dataset.u;
+                let action, params = { username }, done;
+                if (b.dataset.act === 'revoke') {
+                    if (!confirm(`Revoke access for ${username}? They'll be signed out straight away.`)) return;
+                    action = 'setActive'; params.active = 'false'; done = `Revoked ${username}`;
+                } else if (b.dataset.act === 'restore') {
+                    action = 'setActive'; params.active = 'true'; done = `Restored ${username}`;
+                } else if (b.dataset.act === 'role') {
+                    action = 'setRole'; params.role = b.dataset.role; done = `${username} is now ${b.dataset.role}`;
+                } else if (b.dataset.act === 'reset') {
+                    const pw = prompt(`New password for ${username} (at least 6 characters):`);
+                    if (pw == null) return;
+                    if (pw.length < 6) return FH.toast('Password must be at least 6 characters.', true);
+                    action = 'resetPassword'; params.password = pw; done = `Password reset for ${username}. They'll need to sign in again.`;
+                }
+                b.disabled = true;
+                try {
+                    const res = await FH.api(action, params);
+                    renderUsers(res.users || []);
+                    FH.toast(done);
+                } catch (err) { FH.toast(err.message, true); b.disabled = false; }
+            });
+
+            $('settingsForm').addEventListener('submit', async e => {
+                e.preventDefault();
+                const v = parseInt($('lowDefault').value, 10);
+                if (isNaN(v) || v < 0) return FH.toast('Enter 0 or more.', true);
+                try {
+                    await FH.api('saveSettings', { lowDefault: v });
+                    FH.toast(`Low-stock alert set to ${v}`);
+                } catch (err) { FH.toast(err.message, true); }
+            });
+
+            loadUsers();
+            loadSettings();
+        }
+
+        $('pwForm').addEventListener('submit', async e => {
+            e.preventDefault();
+            const oldPassword = $('oldPw').value, newPassword = $('newPw').value;
+            if (!oldPassword || !newPassword) return FH.toast('Fill in both password fields.', true);
+            if (newPassword.length < 6) return FH.toast('New password must be at least 6 characters.', true);
+            try {
+                await FH.api('changePassword', { oldPassword, newPassword });
+                $('pwForm').reset();
+                FH.toast('Password changed');
+            } catch (err) { FH.toast(err.message, true); }
+        });
+    })();
+</script>
+</body>
+</html>
