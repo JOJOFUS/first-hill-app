@@ -65,7 +65,7 @@
             </tbody>
         </table>
     </div>
-    <p class="hint"><i class="fas fa-circle-info"></i> <strong style="color:#7bffa0">Use first</strong> marks the storeroom holding the oldest stock of that tyre. Ages are worked out from the update history, so stock that was already on the shelf before history logging started shows as "from before tracking".</p>
+    <p class="hint"><i class="fas fa-circle-info"></i> <strong style="color:#7bffa0">Use first</strong> marks the storeroom holding the oldest stock of that tyre. When something is low, "could move from" lists A1 first, then the shops, then other warehouses. Ages are worked out from the update history, so stock that was already on the shelf before history logging started shows as "from before tracking".</p>
     <div class="footnote">FirstHill (pty) ltd · live sync</div>
 </div>
 
@@ -78,7 +78,7 @@
 
         let items = [];
         let lowDefault = 4;
-        let wh = null;
+        let wh = null;              // null = all, '@warehouse' / '@shop' = a group, otherwise one storeroom name
         let statusFilter = 'all';
         let sortBy = 'brand';
         let query = '';
@@ -90,6 +90,16 @@
         const sortSel = document.getElementById('sortSel');
         const reorderEl = document.getElementById('reorder');
 
+        function inScope(i) {
+            if (!wh) return true;
+            if (wh === '@shop') return FH.isShop(i.storeroom);
+            if (wh === '@warehouse') return !FH.isShop(i.storeroom);
+            return i.storeroom === wh;
+        }
+        function scopeName() {
+            return wh === '@shop' ? 'all shops' : wh === '@warehouse' ? 'all warehouses' : wh;
+        }
+
         function enrich() {
             items.forEach(i => { i.status = FH.statusOf(i, lowDefault); i.level = FH.levelOf(i, lowDefault); });
             FH.markUseFirst(items);
@@ -97,11 +107,21 @@
 
         // ---------- warehouse chips ----------
         function renderWhChips() {
-            const stores = [...new Set(items.map(i => i.storeroom))].filter(Boolean).sort(FH.naturalSort);
+            const stores = FH.storeNames(items.map(i => i.storeroom));
+            const whs = stores.filter(s => !FH.isShop(s)), shops = stores.filter(FH.isShop);
+            const chip = (val, label, extra = '') =>
+                `<button type="button" class="chip ${extra} ${(wh || '') === val ? 'active' : ''}" data-wh="${esc(val)}">${label}</button>`;
             const el = document.getElementById('whChips');
-            el.innerHTML = `<i class="fas fa-location-dot" style="color:#ff5e5e"></i>
-                <button type="button" class="chip ${wh ? '' : 'active'}" data-wh="">All storerooms</button>` +
-                stores.map(s => `<button type="button" class="chip ${wh === s ? 'active' : ''}" data-wh="${esc(s)}">${esc(s)}</button>`).join('');
+            let html = `<i class="fas fa-location-dot" style="color:#ff5e5e"></i>` + chip('', 'All storerooms');
+            if (whs.length && shops.length) {
+                html += `<span class="chip-label"><i class="fas fa-warehouse"></i> Warehouses</span>` + chip('@warehouse', 'All warehouses') +
+                    whs.map(s => chip(s, esc(s))).join('') +
+                    `<span class="chip-label"><i class="fas fa-store"></i> Shops</span>` + chip('@shop', 'All shops', 'shop') +
+                    shops.map(s => chip(s, esc(s), 'shop')).join('');
+            } else {
+                html += stores.map(s => chip(s, esc(s), FH.isShop(s) ? 'shop' : '')).join('');
+            }
+            el.innerHTML = html;
             el.querySelectorAll('button').forEach(b => b.addEventListener('click', () => {
                 wh = b.dataset.wh || null;
                 renderWhChips();
@@ -111,7 +131,7 @@
 
         // ---------- KPIs ----------
         function renderKpis() {
-            const scope = wh ? items.filter(i => i.storeroom === wh) : items;
+            const scope = items.filter(inScope);
             const low = scope.filter(i => i.status === 'low').length;
             const out = scope.filter(i => i.status === 'out').length;
             document.getElementById('kSku').textContent = scope.filter(i => i.qty > 0).length;
@@ -123,16 +143,17 @@
         }
 
         // ---------- reorder list ----------
+        // "Could move from" suggestions: A1 first, then the shops, then other warehouses (most spare first within each).
         function buildReorder() {
             const groups = {};
             items.forEach(i => (groups[FH.keyOf(i.brand, i.size, '')] ||= []).push(i));
             const rows = [];
             Object.values(groups).forEach(g => {
-                const needing = g.filter(i => (i.status === 'low' || i.status === 'out') && (!wh || i.storeroom === wh));
+                const needing = g.filter(i => (i.status === 'low' || i.status === 'out') && inScope(i));
                 if (!needing.length) return;
                 const spare = g.filter(i => i.status === 'ok' && i.qty > i.level && !needing.includes(i))
                                .map(i => ({ store: i.storeroom, spare: i.qty - Math.max(i.level, 0) }))
-                               .sort((a, b) => b.spare - a.spare);
+                               .sort((a, b) => (FH.sourceRank(a.store) - FH.sourceRank(b.store)) || (b.spare - a.spare));
                 rows.push({ brand: g[0].brand, size: g[0].size, needing, spare,
                             urgency: Math.min(...needing.map(n => n.qty - n.level)) });
             });
@@ -146,21 +167,21 @@
             if (!rows.length) {
                 reorderEl.className = 'reorder clear';
                 reorderEl.removeAttribute('open');
-                reorderEl.innerHTML = `<summary><i class="fas fa-circle-check"></i> Nothing needs ordering${wh ? ' in ' + esc(wh) : ''} right now</summary>`;
+                reorderEl.innerHTML = `<summary><i class="fas fa-circle-check"></i> Nothing needs ordering${wh ? ' in ' + esc(scopeName()) : ''} right now</summary>`;
                 return;
             }
             const wasOpen = reorderEl.hasAttribute('open') || reorderEl.dataset.init !== '1';
             reorderEl.dataset.init = '1';
             reorderEl.className = 'reorder';
             reorderEl.innerHTML = `
-                <summary><i class="fas fa-truck-ramp-box"></i> ${rows.length} tyre${rows.length === 1 ? '' : 's'} to reorder${wh ? ' for ' + esc(wh) : ''}
+                <summary><i class="fas fa-truck-ramp-box"></i> ${rows.length} tyre${rows.length === 1 ? '' : 's'} to reorder${wh ? ' for ' + esc(scopeName()) : ''}
                     <i class="fas fa-chevron-down chev"></i></summary>
                 <div class="reorder-body">
                     ${rows.map(r => `<div class="reorder-item">
                         <div class="tyre">${esc(r.brand)} ${esc(r.size)}</div>
                         <div class="where">
                             ${r.needing.map(n => `<span style="white-space:nowrap">${esc(n.storeroom)}: <strong>${n.qty}</strong>${n.qty === 0 ? ' (out)' : ` (alert at ${n.level})`}</span>`).join(' &nbsp;·&nbsp; ')}
-                            ${r.spare.length ? `<span class="spare"><i class="fas fa-right-left"></i> Could move instead: ${r.spare.slice(0, 3).map(s => `${esc(s.store)} has ${s.spare} spare`).join(', ')}</span>` : ''}
+                            ${r.spare.length ? `<span class="spare"><i class="fas fa-right-left"></i> Could move from: ${r.spare.slice(0, 3).map(s => `<strong>${esc(s.store)}</strong> (${s.spare} spare)`).join(', ')}</span>` : ''}
                         </div>
                     </div>`).join('')}
                     <div class="reorder-actions">
@@ -171,8 +192,9 @@
             if (wasOpen) reorderEl.setAttribute('open', '');
 
             document.getElementById('copyOrder').addEventListener('click', async () => {
-                const text = 'Firsthill tyre order list' + (wh ? ' – ' + wh : '') + ' (' + FH.fmtDate(new Date()) + ')\n\n' +
-                    rows.map(r => `${r.brand} ${r.size}: ` + r.needing.map(n => `${n.storeroom} has ${n.qty}`).join(', ')).join('\n');
+                const text = 'Firsthill tyre order list' + (wh ? ' – ' + scopeName() : '') + ' (' + FH.fmtDate(new Date()) + ')\n\n' +
+                    rows.map(r => `${r.brand} ${r.size}: ` + r.needing.map(n => `${n.storeroom} has ${n.qty}`).join(', ') +
+                        (r.spare.length ? ` (could move from ${r.spare.slice(0, 3).map(s => s.store + ': ' + s.spare + ' spare').join(', ')})` : '')).join('\n');
                 try { await navigator.clipboard.writeText(text); FH.toast('Order list copied'); }
                 catch (e) { FH.toast('Could not copy. Select the list and copy it manually.', true); }
             });
@@ -188,8 +210,7 @@
         }
 
         function filtered() {
-            let list = items;
-            if (wh) list = list.filter(i => i.storeroom === wh);
+            let list = items.filter(inScope);
             if (statusFilter === 'low') list = list.filter(i => i.status === 'low' || i.status === 'out');
             else if (statusFilter === 'out') list = list.filter(i => i.status === 'out');
             else if (statusFilter === 'old') list = list.filter(i => i.qty > 0);
@@ -233,12 +254,15 @@
             renderKpis();
             renderReorder();
             if (!items.length) {
-                tbody.innerHTML = `<tr class="empty-row"><td colspan="6"><i class="fas fa-database"></i> No tyres in the sheet yet. Add stock on the Update page.</td></tr>`;
+                const noShops = me.role !== 'admin' && !FH.storeNames().length;
+                tbody.innerHTML = noShops
+                    ? `<tr class="empty-row"><td colspan="6"><i class="fas fa-store-slash"></i> You haven't been given access to any shops yet. Ask an admin to tick your shops on the Users page.</td></tr>`
+                    : `<tr class="empty-row"><td colspan="6"><i class="fas fa-database"></i> No tyres here yet. Add stock on the Update page.</td></tr>`;
                 countNote.style.display = 'none';
                 return;
             }
             const list = filtered();
-            const scopeTxt = wh ? ` in ${wh}` : '';
+            const scopeTxt = wh ? ` in ${scopeName()}` : '';
             if (query || wh || statusFilter !== 'all') {
                 countNote.style.display = 'block';
                 countNote.textContent = `${list.length} line${list.length === 1 ? '' : 's'}${scopeTxt}` + (query ? ` matching "${query}"` : '');
@@ -255,7 +279,7 @@
                 <td data-label="Brand"><span class="brand-tag">${esc(i.brand)}</span></td>
                 <td data-label="Size"><span class="size-tag">${esc(i.size)}</span></td>
                 <td data-label="Qty">${qtyCell(i)}</td>
-                <td data-label="Storeroom"><span class="wh-tag"><i class="fas fa-warehouse" style="margin-right:4px;"></i>${esc(i.storeroom)}</span></td>
+                <td data-label="Storeroom">${FH.storeTag(i.storeroom)}</td>
                 <td data-label="Last received"><span class="date-cell">${i.lastIn ? FH.fmtDate(i.lastIn) + `<small>${FH.ageText(i.lastIn)}</small>` : '—'}</span></td>
                 <td data-label="Oldest stock">${oldestCell(i)}</td>
             </tr>`).join('');
@@ -266,6 +290,7 @@
                 const data = await FH.api('getInventory');
                 items = data.items || [];
                 lowDefault = Number(data.lowDefault) || 0;
+                FH.setStores(data.stores, data.moveFromFirst);
                 enrich();
                 renderWhChips();
                 render();

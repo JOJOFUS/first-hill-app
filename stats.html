@@ -158,7 +158,7 @@
             // storeroom comparison (all storerooms only)
             let compare = '';
             if (!store) {
-                const stores = [...new Set(items.map(i => i.storeroom))].filter(Boolean).sort(FH.naturalSort);
+                const stores = FH.storeNames(items.map(i => i.storeroom));
                 const cmp = stores.map(s => {
                     const its = items.filter(i => i.storeroom === s);
                     const se = ev.filter(e => e.storeroom === s);
@@ -174,13 +174,13 @@
                         need: its.filter(i => ['low', 'out'].includes(FH.statusOf(i, lowDefault))).length,
                         best
                     };
-                }).sort((a, b) => b.out - a.out);
+                }).sort((a, b) => (FH.isShop(a.s) - FH.isShop(b.s)) || (b.out - a.out));
                 compare = `<div class="panel">
                     <h2><i class="fas fa-warehouse"></i> Storerooms side by side <span class="sub">tap a row to see its stats</span></h2>
                     <div class="table-wrapper"><table class="cards">
                         <thead><tr><th>Storeroom</th><th class="num">Tyres on hand</th><th class="num">Lines in stock</th><th class="num">Taken out</th><th class="num">Added</th><th class="num">Need reorder</th><th>Most taken</th></tr></thead>
                         <tbody>${cmp.map(c => `<tr class="clickable" data-store="${esc(c.s)}">
-                            <td data-label="Storeroom"><span class="wh-tag"><i class="fas fa-warehouse" style="margin-right:4px;"></i>${esc(c.s)}</span></td>
+                            <td data-label="Storeroom">${FH.storeTag(c.s)}</td>
                             <td data-label="On hand" class="num">${fmt(c.stock)}</td>
                             <td data-label="Lines" class="num">${c.lines}</td>
                             <td data-label="Taken out" class="num"><strong style="color:var(--red-soft)">${fmt(c.out)}</strong></td>
@@ -278,12 +278,15 @@
                 const [inv, hist] = await Promise.all([FH.api('getInventory'), FH.api('getHistory')]);
                 items = inv.items || [];
                 lowDefault = Number(inv.lowDefault) || 0;
-                rows = (hist.rows || []).map(r => ({ ...r, t: FH.toDate(r.timestamp), d: parseInt(r.delta, 10) || 0 }));
+                FH.setStores(inv.stores, inv.moveFromFirst);
+                // "not on system" additions were already on the shelf, so they aren't counted as stock added
+                rows = (hist.rows || []).filter(r => r.type !== 'count')
+                    .map(r => ({ ...r, t: FH.toDate(r.timestamp), d: parseInt(r.delta, 10) || 0 }));
                 const ts = rows.map(r => r.t?.getTime()).filter(Boolean);
                 firstEver = ts.length ? ts.reduce((a, b) => Math.min(a, b)) : null;
 
-                const stores = [...new Set(items.map(i => i.storeroom).concat(rows.map(r => r.storeroom)))].filter(Boolean).sort(FH.naturalSort);
-                storeSel.innerHTML = '<option value="">All storerooms</option>' + stores.map(s => `<option value="${esc(s)}">${esc(s)}</option>`).join('');
+                const stores = FH.storeNames(items.map(i => i.storeroom).concat(rows.map(r => r.storeroom)));
+                storeSel.innerHTML = '<option value="">All storerooms</option>' + FH.storeOptions(stores, '');
                 const fromUrl = new URLSearchParams(location.search).get('store');
                 if (fromUrl && stores.includes(fromUrl)) storeSel.value = fromUrl;
                 render();

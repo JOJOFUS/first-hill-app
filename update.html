@@ -20,6 +20,9 @@
         .qty-wrap button:hover { border-color: #982a2a; color: #fff; }
         #submitBtn.mode-in { background: #1f7a3c; border-color: #2fae5a; box-shadow: 0 4px 0 #0f3d1e; }
         #submitBtn.mode-in:hover { background: #24904a; }
+        #submitBtn.mode-count { background: #3d338a; border-color: #6a5ed0; box-shadow: 0 4px 0 #1f1a4a; }
+        #submitBtn.mode-count:hover { background: #4a3fa3; }
+        @media (max-width: 520px) { .seg { display: flex; flex-wrap: wrap; } .seg button { flex: 1 0 auto; justify-content: center; } }
     </style>
 </head>
 <body>
@@ -29,7 +32,7 @@
     <div class="page-head">
         <div>
             <h1>Update quantity</h1>
-            <p>Pick the storeroom first. Only tyres in that storeroom are listed.</p>
+            <p id="modeHelp">Pick the storeroom first. Only tyres in that storeroom are listed.</p>
         </div>
     </div>
 
@@ -38,6 +41,7 @@
             <div class="seg" role="group" aria-label="Type of update">
                 <button type="button" id="modeOut" class="on-out"><i class="fas fa-arrow-up-from-bracket"></i> Take out</button>
                 <button type="button" id="modeIn"><i class="fas fa-truck-ramp-box"></i> Add stock</button>
+                <button type="button" id="modeCount"><i class="fas fa-clipboard-check"></i> Not on system</button>
             </div>
         </div>
 
@@ -58,7 +62,7 @@
 
         <div class="form-grid" id="newTyreFields" style="display:none; margin-top:14px;">
             <div class="field">
-                <label for="newBrand"><i class="fas fa-tag"></i> Brand (new to this storeroom)</label>
+                <label for="newBrand" id="newBrandLabel"><i class="fas fa-tag"></i> Brand (new to this storeroom)</label>
                 <input type="text" id="newBrand" list="brandList" autocomplete="off" placeholder="e.g. Bridgestone">
             </div>
             <div class="field">
@@ -99,7 +103,7 @@
 
         let items = [];
         let lowDefault = 4;
-        let mode = 'out';           // 'out' = take out, 'in' = add stock
+        let mode = 'out';           // 'out' = take out, 'in' = add stock (delivery), 'count' = stock on the shelf that isn't on the system
         let newTyre = false;        // typing a brand/size that isn't in this storeroom yet
         let busy = false;
 
@@ -121,13 +125,19 @@
         }
 
         function fillStores() {
-            const stores = [...new Set(items.map(i => i.storeroom))].filter(Boolean).sort(FH.naturalSort);
+            const stores = FH.storeNames(items.map(i => i.storeroom));
             let current = storeSel.value;
             if (!current) { try { current = localStorage.getItem(LAST_STORE_KEY) || ''; } catch (e) {} }
-            storeSel.innerHTML = opt('', '— choose storeroom —') + stores.map(s => {
+            if (!stores.length) {
+                storeSel.innerHTML = opt('', me.role === 'admin' ? 'No storerooms yet' : 'No shops assigned to you yet');
+                storeSel.disabled = true;
+                return;
+            }
+            storeSel.disabled = false;
+            storeSel.innerHTML = opt('', '— choose storeroom —') + FH.storeOptions(stores, current, s => {
                 const n = items.filter(i => i.storeroom === s && i.qty > 0).length;
-                return opt(s, `${s}  (${n} tyre line${n === 1 ? '' : 's'})`, s === current);
-            }).join('');
+                return `${s}  (${n} tyre line${n === 1 ? '' : 's'})`;
+            });
         }
 
         function fillBrands() {
@@ -183,27 +193,40 @@
             return { store, brand: item ? item.brand : brand, size: item ? item.size : size, item };
         }
 
+        const SUBMIT_LABEL = {
+            out: '<i class="fas fa-arrow-up-from-bracket"></i> Take out',
+            in: '<i class="fas fa-truck-ramp-box"></i> Add stock',
+            count: '<i class="fas fa-clipboard-check"></i> Add to system'
+        };
+
         function setMode(m) {
             mode = m;
             $('modeOut').className = m === 'out' ? 'on-out' : '';
             $('modeIn').className = m === 'in' ? 'on-in' : '';
-            $('qtyLabel').textContent = m === 'out' ? 'How many tyres are you taking out?' : 'How many tyres arrived?';
+            $('modeCount').className = m === 'count' ? 'on-count' : '';
+            $('qtyLabel').textContent = m === 'out' ? 'How many tyres are you taking out?'
+                : m === 'in' ? 'How many tyres arrived?' : 'How many are on the shelf that the system doesn\'t know about?';
+            $('modeHelp').textContent = m === 'count'
+                ? "Add tyres that are physically in a storeroom but missing from the system. Type any brand and size, even one the system has never seen. They're recorded as existing stock, not as a new delivery."
+                : 'Pick the storeroom first. Only tyres in that storeroom are listed.';
             submitBtn.classList.toggle('mode-in', m === 'in');
-            submitBtn.innerHTML = m === 'out'
-                ? '<i class="fas fa-arrow-up-from-bracket"></i> Take out'
-                : '<i class="fas fa-truck-ramp-box"></i> Add stock';
-            if (m === 'out') setNewTyre(false);
+            submitBtn.classList.toggle('mode-count', m === 'count');
+            submitBtn.innerHTML = SUBMIT_LABEL[m];
+            setNewTyre(m === 'count', true);
             $('newToggle').style.display = m === 'in' ? '' : 'none';
             fillBrands(); fillSizes(); updateInfo();
         }
 
-        function setNewTyre(on) {
+        function setNewTyre(on, quiet) {
             newTyre = on;
             $('newTyreFields').style.display = on ? '' : 'none';
             $('brandField').style.display = on ? 'none' : '';
             $('sizeField').style.display = on ? 'none' : '';
+            $('newBrandLabel').innerHTML = mode === 'count'
+                ? '<i class="fas fa-tag"></i> Brand'
+                : '<i class="fas fa-tag"></i> Brand (new to this storeroom)';
             $('newToggle').textContent = on ? 'Pick from tyres already in this storeroom instead' : "Adding a tyre this storeroom doesn't have yet?";
-            if (on) newBrand.focus();
+            if (on && !quiet) newBrand.focus();
             updateInfo();
         }
 
@@ -221,7 +244,13 @@
             if (!store || !brand || !size) { infoArea.innerHTML = ''; return; }
 
             let html = '';
-            if (!item) {
+            if (mode === 'count') {
+                const known = items.some(i => i.brand.toLowerCase() === brand.toLowerCase() && String(i.size).toLowerCase() === size.toLowerCase());
+                html += item
+                    ? `<div class="info-box"><i class="fas fa-circle-info"></i>The system has <strong>${item.qty}</strong> × ${esc(item.brand)} ${esc(item.size)} in ${esc(store)}. What you add here goes on top of that.</div>`
+                    : `<div class="info-box"><i class="fas fa-circle-plus"></i><strong>${esc(brand)} ${esc(size)}</strong> isn't on the system in ${esc(store)}${known ? '' : ' (or anywhere else)'}. This will create a new line.</div>`;
+                html += `<div class="info-box good"><i class="fas fa-clipboard-check"></i>These count as stock that was already on the shelf, so they show as the oldest stock and won't appear as a delivery today.</div>`;
+            } else if (!item) {
                 html += `<div class="info-box"><i class="fas fa-circle-plus"></i><strong>${esc(brand)} ${esc(size)}</strong> isn't in ${esc(store)} yet. Adding stock will create a new line.</div>`;
             } else {
                 const st = FH.statusOf(item, lowDefault);
@@ -270,8 +299,8 @@
             submitBtn.innerHTML = '<i class="fas fa-spinner fa-pulse"></i> Saving…';
             try {
                 const delta = mode === 'out' ? -n : n;
-                const res = await FH.api('updateQty', { brand, size, storeroom: store, delta });
-                const verb = mode === 'out' ? `Took ${n} out of` : `Added ${n} to`;
+                const res = await FH.api('updateQty', { brand, size, storeroom: store, delta, kind: mode === 'count' ? 'count' : '' });
+                const verb = mode === 'out' ? `Took ${n} out of` : mode === 'count' ? `Added ${n} existing tyre${n === 1 ? '' : 's'} to the system for` : `Added ${n} to`;
                 const after = { qty: res.newQty, min: item ? item.min : null };
                 const st = FH.statusOf(after, lowDefault);
                 resultArea.innerHTML = `<div class="info-box ${st === 'ok' ? 'good' : 'warn'}" style="margin:0 0 22px;">
@@ -280,7 +309,8 @@
                 </div>`;
                 FH.toast('Saved');
                 qtyInput.value = 1;
-                if (newTyre) { setNewTyre(false); }
+                if (newTyre && mode !== 'count') { setNewTyre(false); }
+                if (mode === 'count') { newBrand.value = ''; newSize.value = ''; }
                 await load(true, { brand, size });
             } catch (err) {
                 FH.toast(err.message, true);
@@ -296,6 +326,7 @@
                 const data = await FH.api('getInventory');
                 items = data.items || [];
                 lowDefault = Number(data.lowDefault) || 0;
+                FH.setStores(data.stores, data.moveFromFirst);
                 refreshAll();
                 if (keepSelection && select) {
                     if ([...brandSel.options].some(o => o.value === select.brand)) { brandSel.value = select.brand; fillSizes(); }
@@ -311,6 +342,7 @@
         // ---------- events ----------
         $('modeOut').addEventListener('click', () => setMode('out'));
         $('modeIn').addEventListener('click', () => setMode('in'));
+        $('modeCount').addEventListener('click', () => setMode('count'));
         $('newToggle').addEventListener('click', () => setNewTyre(!newTyre));
         storeSel.addEventListener('change', () => {
             try { localStorage.setItem(LAST_STORE_KEY, storeSel.value); } catch (e) {}

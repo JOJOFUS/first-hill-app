@@ -24,6 +24,7 @@
             <button type="button" class="chip active" data-type="all">All changes</button>
             <button type="button" class="chip" data-type="in"><i class="fas fa-arrow-down"></i> Stock added</button>
             <button type="button" class="chip" data-type="out"><i class="fas fa-arrow-up"></i> Stock taken out</button>
+            <button type="button" class="chip" data-type="count"><i class="fas fa-clipboard-check"></i> Added, not on system</button>
         </div>
         <label style="font-size:0.82rem; color:var(--muted);">Storeroom
             <select id="storeSel"><option value="">All</option></select>
@@ -74,7 +75,8 @@
             const q = query.toLowerCase();
             return history.filter(h => {
                 const d = parseInt(h.delta, 10) || 0;
-                if (type === 'in' && d <= 0) return false;
+                if (type === 'in' && (d <= 0 || h.type === 'count')) return false;
+                if (type === 'count' && h.type !== 'count') return false;
                 if (type === 'out' && d >= 0) return false;
                 if (store && h.storeroom !== store) return false;
                 if (q && ![h.brand, h.size, h.storeroom, h.user].some(v => String(v ?? '').toLowerCase().includes(q))) return false;
@@ -103,12 +105,15 @@
             tbody.innerHTML = list.slice(0, shown).map(h => {
                 const d = parseInt(h.delta, 10) || 0;
                 const pos = d >= 0;
+                const isCount = h.type === 'count';
                 return `<tr>
                     <td data-label="Date &amp; time"><span class="date-cell">${FH.fmtDateTime(h.timestamp)}</span></td>
                     <td data-label="Brand"><span class="brand-tag">${esc(h.brand)}</span></td>
                     <td data-label="Size"><span class="size-tag">${esc(h.size)}</span></td>
-                    <td data-label="Storeroom"><span class="wh-tag"><i class="fas fa-warehouse" style="margin-right:4px;"></i>${esc(h.storeroom)}</span></td>
-                    <td data-label="Change"><span class="change-badge ${pos ? 'pos' : 'neg'}"><i class="fas ${pos ? 'fa-arrow-down' : 'fa-arrow-up'}"></i> ${pos ? '+' + d : d}</span></td>
+                    <td data-label="Storeroom">${FH.storeTag(h.storeroom)}</td>
+                    <td data-label="Change">${isCount
+                        ? `<span class="change-badge count" title="Already on the shelf, added to the system"><i class="fas fa-clipboard-check"></i> +${d} not on system</span>`
+                        : `<span class="change-badge ${pos ? 'pos' : 'neg'}"><i class="fas ${pos ? 'fa-arrow-down' : 'fa-arrow-up'}"></i> ${pos ? '+' + d : d}</span>`}</td>
                     <td data-label="New qty"><span class="qty-badge">${esc(h.newQty)}</span></td>
                     <td data-label="By"><span class="date-cell">${h.user ? esc(h.user) : '—'}</span></td>
                 </tr>`;
@@ -122,10 +127,11 @@
 
         async function load() {
             try {
-                const data = await FH.api('getHistory');
+                const [data, inv] = await Promise.all([FH.api('getHistory'), FH.api('getInventory')]);
                 history = data.rows || [];
-                const stores = [...new Set(history.map(h => h.storeroom))].filter(Boolean).sort(FH.naturalSort);
-                storeSel.innerHTML = '<option value="">All</option>' + stores.map(s => `<option value="${esc(s)}">${esc(s)}</option>`).join('');
+                FH.setStores(inv.stores, inv.moveFromFirst);
+                const stores = FH.storeNames(history.map(h => h.storeroom));
+                storeSel.innerHTML = '<option value="">All</option>' + FH.storeOptions(stores, '');
                 render();
             } catch (err) {
                 tbody.innerHTML = `<tr class="empty-row"><td colspan="7"><i class="fas fa-triangle-exclamation"></i> Couldn't load history: ${esc(err.message)}</td></tr>`;

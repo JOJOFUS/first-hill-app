@@ -131,6 +131,7 @@ button { font-family: inherit; }
 }
 .seg button.on-out { background: #5a1515; color: #fff; }
 .seg button.on-in { background: #145228; color: #fff; }
+.seg button.on-count { background: #322a6b; color: #fff; }
 
 /* chips */
 .chips { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
@@ -178,6 +179,12 @@ td.num, th.num { text-align: right; }
     background: #281010; padding: 4px 11px; border-radius: 30px; font-size: 0.78rem;
     border: 1px solid #591d1d; color: var(--soft); white-space: nowrap; display: inline-block;
 }
+.wh-tag.shop { background: #10261a; border-color: #2a6b43; color: #9fe6b6; }
+.chip.shop:not(.active) { background: #12281b; border-color: #2a6b43; color: #bdf5cc; }
+.chip-label { font-size: 0.76rem; color: var(--faint); margin-left: 6px; display: inline-flex; align-items: center; gap: 5px; }
+.shop-picks { display: flex; flex-wrap: wrap; gap: 6px 14px; }
+.shop-picks label { display: inline-flex; align-items: center; gap: 6px; font-size: 0.84rem; color: var(--text-2); cursor: pointer; white-space: nowrap; }
+.shop-picks input { accent-color: #2fae5a; width: 16px; height: 16px; }
 .qty-badge {
     display: inline-block; background: #3b1515; padding: 4px 13px; border-radius: 40px; border: 1px solid #7f2828;
     font-weight: 600; color: #ffb3b3; font-variant-numeric: tabular-nums; white-space: nowrap;
@@ -196,6 +203,7 @@ td.num, th.num { text-align: right; }
 }
 .change-badge { padding: 4px 13px; border-radius: 40px; font-weight: 700; border: 1px solid; white-space: nowrap; display: inline-block; }
 .change-badge.pos { background: var(--ok-bg); border-color: var(--ok-line); color: var(--ok); }
+.change-badge.count { background: #1d1a33; border-color: #5a4fb0; color: #c7c0ff; }
 .change-badge.neg { background: #321010; border-color: #7f2a2a; color: var(--red-soft); }
 .status-pill { font-size: 0.75rem; font-weight: 600; padding: 3px 10px; border-radius: 20px; border: 1px solid; white-space: nowrap; }
 .status-pill.active { background: var(--ok-bg); border-color: var(--ok-line); color: var(--ok); }

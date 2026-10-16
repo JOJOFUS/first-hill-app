@@ -44,18 +44,22 @@
                 </div>
                 <button type="submit" class="btn" id="addBtn"><i class="fas fa-user-plus"></i> Add user</button>
             </form>
-            <p class="hint">Staff can view stock, update quantities, and see history and stats. Admins can also manage users and settings. Give the person their username and starting password; they can change it under Account.</p>
+            <div class="field" id="aShopsField" style="margin-top:14px;">
+                <label><i class="fas fa-store"></i> Shops they can use</label>
+                <div class="shop-picks" id="aShops"></div>
+            </div>
+            <p class="hint">Staff only see, update and get history and stats for the shops ticked for them. They never see the warehouses. Admins see every storeroom and can manage users and settings. Give the person their username and starting password; they can change it under Account.</p>
         </div>
 
         <div class="panel">
             <h2><i class="fas fa-users"></i> People with access</h2>
             <div class="table-wrapper">
                 <table class="cards">
-                    <thead><tr><th>Name</th><th>Username</th><th>Role</th><th>Status</th><th>Last sign-in</th><th>Actions</th></tr></thead>
-                    <tbody id="usersBody"><tr class="empty-row"><td colspan="6"><i class="fas fa-spinner fa-pulse"></i> Loading users…</td></tr></tbody>
+                    <thead><tr><th>Name</th><th>Username</th><th>Role</th><th>Shops</th><th>Status</th><th>Last sign-in</th><th>Actions</th></tr></thead>
+                    <tbody id="usersBody"><tr class="empty-row"><td colspan="7"><i class="fas fa-spinner fa-pulse"></i> Loading users…</td></tr></tbody>
                 </table>
             </div>
-            <p class="hint">Revoking signs the person out on every device straight away. Their past updates stay in the history.</p>
+            <p class="hint">Ticking or unticking a shop saves straight away and takes effect the next time the person loads a page. Revoking signs the person out on every device straight away. Their past updates stay in the history.</p>
         </div>
 
         <div class="panel">
@@ -105,9 +109,23 @@
             $('adminArea').style.display = '';
         }
 
-        function renderUsers(users) {
+        let shopList = [];
+
+        function shopBoxes(selected, attrs = '') {
+            if (!shopList.length) return '<span style="color:var(--faint)">No shops set up</span>';
+            return `<div class="shop-picks">${shopList.map(sh => `<label><input type="checkbox" value="${esc(sh)}" ${attrs} ${selected.includes(sh) ? 'checked' : ''}> ${esc(sh)}</label>`).join('')}</div>`;
+        }
+        function renderAddShops() {
+            $('aShops').innerHTML = shopList.length
+                ? shopList.map(sh => `<label><input type="checkbox" value="${esc(sh)}"> ${esc(sh)}</label>`).join('')
+                : '<span style="color:var(--faint)">No shops set up</span>';
+            $('aShopsField').style.display = $('aRole').value === 'admin' ? 'none' : '';
+        }
+
+        function renderUsers(users, shops) {
+            if (shops) { shopList = shops; renderAddShops(); }
             const body = $('usersBody');
-            if (!users.length) { body.innerHTML = `<tr class="empty-row"><td colspan="6">No users yet.</td></tr>`; return; }
+            if (!users.length) { body.innerHTML = `<tr class="empty-row"><td colspan="7">No users yet.</td></tr>`; return; }
             users.sort((a, b) => (b.active - a.active) || FH.naturalSort(a.name || a.username, b.name || b.username));
             body.innerHTML = users.map(u => {
                 const isMe = u.username.toLowerCase() === me.username.toLowerCase();
@@ -124,6 +142,9 @@
                     <td data-label="Name"><strong>${esc(u.name || u.username)}</strong>${isMe ? ' <span style="color:var(--faint)">(you)</span>' : ''}</td>
                     <td data-label="Username">${esc(u.username)}</td>
                     <td data-label="Role">${esc(u.role)}</td>
+                    <td data-label="Shops">${u.role === 'admin'
+                        ? '<span style="color:var(--faint)">All storerooms</span>'
+                        : `<div data-shops-for="${esc(u.username)}">${shopBoxes(u.shops || [])}${(u.shops || []).length ? '' : '<span class="status-note">No shops: sees nothing yet</span>'}</div>`}</td>
                     <td data-label="Status"><span class="status-pill ${u.active ? 'active' : 'revoked'}">${u.active ? 'Active' : 'Revoked'}</span></td>
                     <td data-label="Last sign-in"><span class="date-cell">${u.lastLogin ? FH.fmtDateTime(u.lastLogin) : 'Never'}</span></td>
                     <td data-label="Actions"><div class="row-actions">${actions.join('')}</div></td>
@@ -134,9 +155,9 @@
         async function loadUsers() {
             try {
                 const res = await FH.api('listUsers');
-                renderUsers(res.users || []);
+                renderUsers(res.users || [], res.shops);
             } catch (err) {
-                $('usersBody').innerHTML = `<tr class="empty-row"><td colspan="6">Couldn't load users: ${esc(err.message)}</td></tr>`;
+                $('usersBody').innerHTML = `<tr class="empty-row"><td colspan="7">Couldn't load users: ${esc(err.message)}</td></tr>`;
             }
         }
 
@@ -154,14 +175,16 @@
                 const username = $('aUser').value.trim();
                 const password = $('aPass').value;
                 const role = $('aRole').value;
+                const shops = [...$('aShops').querySelectorAll('input:checked')].map(c => c.value).join(',');
                 if (!username || !password) return FH.toast('Enter a username and starting password.', true);
                 if (password.length < 6) return FH.toast('Password must be at least 6 characters.', true);
                 const btn = $('addBtn');
                 btn.disabled = true;
                 try {
-                    const res = await FH.api('addUser', { name, username, password, role });
-                    renderUsers(res.users || []);
+                    const res = await FH.api('addUser', { name, username, password, role, shops: role === 'admin' ? '' : shops });
+                    renderUsers(res.users || [], res.shops);
                     $('addForm').reset();
+                    renderAddShops();
                     FH.toast(`Added ${name || username}`);
                 } catch (err) { FH.toast(err.message, true); }
                 btn.disabled = false;
@@ -188,9 +211,31 @@
                 b.disabled = true;
                 try {
                     const res = await FH.api(action, params);
-                    renderUsers(res.users || []);
+                    renderUsers(res.users || [], res.shops);
                     FH.toast(done);
                 } catch (err) { FH.toast(err.message, true); b.disabled = false; }
+            });
+
+            $('aRole').addEventListener('change', renderAddShops);
+
+            // tick / untick a shop for a staff member: saves straight away
+            $('usersBody').addEventListener('change', async e => {
+                const box = e.target.closest('input[type=checkbox]');
+                const wrap = box && box.closest('[data-shops-for]');
+                if (!wrap) return;
+                const username = wrap.dataset.shopsFor;
+                const boxes = [...wrap.querySelectorAll('input[type=checkbox]')];
+                const shops = boxes.filter(c => c.checked).map(c => c.value);
+                boxes.forEach(c => c.disabled = true);
+                try {
+                    const res = await FH.api('setShops', { username, shops: shops.join(',') });
+                    renderUsers(res.users || [], res.shops);
+                    FH.toast(shops.length ? `${username} can now use ${shops.join(', ')}` : `${username} has no shops now`);
+                } catch (err) {
+                    FH.toast(err.message, true);
+                    box.checked = !box.checked;
+                    boxes.forEach(c => c.disabled = false);
+                }
             });
 
             $('settingsForm').addEventListener('submit', async e => {

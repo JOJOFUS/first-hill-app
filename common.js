@@ -191,9 +191,43 @@ const FH = (() => {
         return String(a).localeCompare(String(b), undefined, { numeric: true, sensitivity: 'base' });
     }
 
+    // ---------- storerooms: shops vs warehouses ----------
+    let storeTypes = {};          // name -> 'shop' | 'warehouse'
+    let moveFirst = [];           // storerooms to suggest moving stock from first (e.g. A1)
+    /** Call with the `stores` and `moveFromFirst` lists from getInventory. */
+    function setStores(list, first) {
+        storeTypes = {};
+        (list || []).forEach(s => { storeTypes[s.name] = s.type; });
+        if (first) moveFirst = first.map(x => String(x).toLowerCase());
+    }
+    function isShop(name) { return storeTypes[name] === 'shop'; }
+    /** Known storerooms, warehouses first then shops, each A–Z. Pass extra names (e.g. from history) to include them. */
+    function storeNames(extra = []) {
+        const names = [...new Set(Object.keys(storeTypes).concat(extra))].filter(Boolean);
+        return names.sort((a, b) => (isShop(a) - isShop(b)) || naturalSort(a, b));
+    }
+    function storeIcon(name) { return isShop(name) ? 'fa-store' : 'fa-warehouse'; }
+    function storeTag(name) {
+        return `<span class="wh-tag ${isShop(name) ? 'shop' : ''}"><i class="fas ${storeIcon(name)}" style="margin-right:4px;"></i>${esc(name)}</span>`;
+    }
+    /** <option>s grouped into Warehouses / Shops. */
+    function storeOptions(names, selected, labelFn) {
+        const opt = n => `<option value="${esc(n)}" ${n === selected ? 'selected' : ''}>${esc(labelFn ? labelFn(n) : n)}</option>`;
+        const wh = names.filter(n => !isShop(n)), sh = names.filter(isShop);
+        if (!wh.length || !sh.length) return names.map(opt).join('');
+        return `<optgroup label="Warehouses">${wh.map(opt).join('')}</optgroup><optgroup label="Shops">${sh.map(opt).join('')}</optgroup>`;
+    }
+    /** Order for "move stock from" suggestions: A1 (or whatever is set) first, then shops, then other warehouses. */
+    function sourceRank(name) {
+        const i = moveFirst.indexOf(String(name).toLowerCase());
+        if (i !== -1) return i;
+        return moveFirst.length + (isShop(name) ? 0 : 1);
+    }
+
     return {
         api, esc, user, isAdmin, setSession, clearSession, requireLogin, toast,
         toDate, fmtDate, fmtDateTime, daysAgo, ageText,
-        keyOf, levelOf, statusOf, oldestTs, markUseFirst, naturalSort, DAY
+        keyOf, levelOf, statusOf, oldestTs, markUseFirst, naturalSort, DAY,
+        setStores, isShop, storeNames, storeIcon, storeTag, storeOptions, sourceRank
     };
 })();
