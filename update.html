@@ -93,12 +93,13 @@
     <div class="footnote">FirstHill (pty) ltd · live sync</div>
 </div>
 
+<script src="i18n.js"></script>
 <script src="common.js"></script>
 <script>
     (function () {
         const me = FH.requireLogin('update.html');
         if (!me) return;
-        const esc = FH.esc;
+        const esc = FH.esc, t = FH.t, tp = FH.tp;
         const LAST_STORE_KEY = 'fh_last_store';
 
         let items = [];
@@ -136,7 +137,7 @@
             storeSel.disabled = false;
             storeSel.innerHTML = opt('', '— choose storeroom —') + FH.storeOptions(stores, current, s => {
                 const n = items.filter(i => i.storeroom === s && i.qty > 0).length;
-                return `${s}  (${n} tyre line${n === 1 ? '' : 's'})`;
+                return `${s}  (${tp(n, '{n} tyre line', '{n} tyre lines')})`;
             });
         }
 
@@ -166,8 +167,8 @@
             sizeSel.disabled = false;
             sizeSel.innerHTML = opt('', '— size —') + list.map(i => {
                 const st = FH.statusOf(i, lowDefault);
-                const flag = st === 'out' ? ' · out' : st === 'low' ? ' · low' : '';
-                return opt(i.size, `${i.size}  —  ${i.qty} in stock${flag}`, i.size === current);
+                const flag = st === 'out' ? ' · ' + t('out') : st === 'low' ? ' · ' + t('low') : '';
+                return opt(i.size, `${i.size}  —  ${t('{n} in stock', { n: i.qty })}${flag}`, i.size === current);
             }).join('');
             if (list.length === 1 && !sizeSel.value) sizeSel.value = list[0].size;
         }
@@ -233,9 +234,12 @@
         // ---------- info / FIFO hints ----------
         function batchText(i) {
             if (i.qty <= 0) return '';
-            if (i.untracked > 0 && i.untracked >= i.qty) return `All ${i.qty} were already here before tracking started, so there's no delivery date for them yet. Take the oldest-looking ones (check the DOT date on the sidewall).`;
-            if (i.untracked > 0) return `${i.untracked} of these ${i.qty} were here before tracking started — take those first.`;
-            if (i.oldestIn) return `Oldest batch here arrived <strong>${FH.fmtDate(i.oldestIn)}</strong> (${FH.ageText(i.oldestIn)}) — ${i.oldestQty} tyre${i.oldestQty === 1 ? '' : 's'} left from it. Take those first.`;
+            if (i.untracked > 0 && i.untracked >= i.qty) return t("All {n} were already here before tracking started, so there's no delivery date for them yet. Take the oldest-looking ones (check the DOT date on the sidewall).", { n: i.qty });
+            if (i.untracked > 0) return t('{a} of these {b} were here before tracking started — take those first.', { a: i.untracked, b: i.qty });
+            if (i.oldestIn) return tp(i.oldestQty,
+                'Oldest batch here arrived <strong>{date}</strong> ({age}) — {n} tyre left from it. Take those first.',
+                'Oldest batch here arrived <strong>{date}</strong> ({age}) — {n} tyres left from it. Take those first.',
+                { date: FH.fmtDate(i.oldestIn), age: FH.ageText(i.oldestIn) });
             return '';
         }
 
@@ -247,18 +251,19 @@
             if (mode === 'count') {
                 const known = items.some(i => i.brand.toLowerCase() === brand.toLowerCase() && String(i.size).toLowerCase() === size.toLowerCase());
                 html += item
-                    ? `<div class="info-box"><i class="fas fa-circle-info"></i>The system has <strong>${item.qty}</strong> × ${esc(item.brand)} ${esc(item.size)} in ${esc(store)}. What you add here goes on top of that.</div>`
-                    : `<div class="info-box"><i class="fas fa-circle-plus"></i><strong>${esc(brand)} ${esc(size)}</strong> isn't on the system in ${esc(store)}${known ? '' : ' (or anywhere else)'}. This will create a new line.</div>`;
+                    ? `<div class="info-box"><i class="fas fa-circle-info"></i>${t('The system has <strong>{n}</strong> × {tyre} in {store}. What you add here goes on top of that.', { n: item.qty, tyre: esc(item.brand + ' ' + item.size), store: esc(store) })}</div>`
+                    : `<div class="info-box"><i class="fas fa-circle-plus"></i>${t(known ? "<strong>{tyre}</strong> isn't on the system in {store}. This will create a new line."
+                                                                                       : "<strong>{tyre}</strong> isn't on the system in {store} (or anywhere else). This will create a new line.", { tyre: esc(brand + ' ' + size), store: esc(store) })}</div>`;
                 html += `<div class="info-box good"><i class="fas fa-clipboard-check"></i>These count as stock that was already on the shelf, so they show as the oldest stock and won't appear as a delivery today.</div>`;
             } else if (!item) {
-                html += `<div class="info-box"><i class="fas fa-circle-plus"></i><strong>${esc(brand)} ${esc(size)}</strong> isn't in ${esc(store)} yet. Adding stock will create a new line.</div>`;
+                html += `<div class="info-box"><i class="fas fa-circle-plus"></i>${t("<strong>{tyre}</strong> isn't in {store} yet. Adding stock will create a new line.", { tyre: esc(brand + ' ' + size), store: esc(store) })}</div>`;
             } else {
                 const st = FH.statusOf(item, lowDefault);
                 const level = FH.levelOf(item, lowDefault);
-                html += `<div class="info-box"><i class="fas fa-circle-info"></i>${esc(store)} has <strong>${item.qty}</strong> × ${esc(item.brand)} ${esc(item.size)}.` +
-                    (st === 'low' ? ` <strong style="color:var(--warn)">Low stock</strong> (alert at ${level}).` : '') +
-                    (st === 'out' ? ` <strong style="color:var(--bad)">Out of stock.</strong>` : '') +
-                    (item.lastIn ? ` Last delivery ${FH.fmtDate(item.lastIn)}.` : '') + `</div>`;
+                html += `<div class="info-box"><i class="fas fa-circle-info"></i>${t('{store} has <strong>{n}</strong> × {tyre}.', { store: esc(store), n: item.qty, tyre: esc(item.brand + ' ' + item.size) })}` +
+                    (st === 'low' ? ' ' + t('<strong style="color:var(--warn)">Low stock</strong> (alert at {n}).', { n: level }) : '') +
+                    (st === 'out' ? ' ' + t('<strong style="color:var(--bad)">Out of stock.</strong>') : '') +
+                    (item.lastIn ? ' ' + t('Last delivery {date}.', { date: FH.fmtDate(item.lastIn) }) : '') + `</div>`;
 
                 if (mode === 'out' && item.qty > 0) {
                     const bt = batchText(item);
@@ -271,8 +276,8 @@
                         .sort((a, b) => FH.oldestTs(a) - FH.oldestTs(b));
                     if (older.length) {
                         const o = older[0];
-                        const when = o.untracked > 0 ? 'from before tracking' : 'since ' + FH.fmtDate(o.oldestIn);
-                        html += `<div class="info-box warn"><i class="fas fa-triangle-exclamation"></i><strong>${esc(o.storeroom)}</strong> has older stock of this tyre (${o.qty} on hand, ${when}). If you can, take from ${esc(o.storeroom)} first.</div>`;
+                        const when = o.untracked > 0 ? t('from before tracking') : t('since {date}', { date: FH.fmtDate(o.oldestIn) });
+                        html += `<div class="info-box warn"><i class="fas fa-triangle-exclamation"></i>${t('<strong>{store}</strong> has older stock of this tyre ({n} on hand, {when}). If you can, take from {store} first.', { store: esc(o.storeroom), n: o.qty, when })}</div>`;
                     }
                 }
             }
@@ -290,7 +295,7 @@
             if (!n || n < 1) return FH.toast('Enter how many tyres (1 or more).', true);
             if (mode === 'out') {
                 const have = item ? item.qty : 0;
-                if (n > have) return FH.toast(`Only ${have} in ${store}. You can't take out ${n}.`, true);
+                if (n > have) return FH.toast(t("Only {have} in {store}. You can't take out {n}.", { have, store, n }), true);
             }
 
             busy = true;
@@ -300,12 +305,16 @@
             try {
                 const delta = mode === 'out' ? -n : n;
                 const res = await FH.api('updateQty', { brand, size, storeroom: store, delta, kind: mode === 'count' ? 'count' : '' });
-                const verb = mode === 'out' ? `Took ${n} out of` : mode === 'count' ? `Added ${n} existing tyre${n === 1 ? '' : 's'} to the system for` : `Added ${n} to`;
+                const vars = { n, tyre: esc(brand + ' ' + size), store: esc(store), from: res.previousQty, to: res.newQty };
+                const done = mode === 'out' ? t('Took {n} out of <strong>{tyre}</strong> in {store}: {from} → <strong>{to}</strong>.', vars)
+                    : mode === 'count' ? tp(n, 'Added {n} existing tyre to the system for <strong>{tyre}</strong> in {store}: {from} → <strong>{to}</strong>.',
+                                            'Added {n} existing tyres to the system for <strong>{tyre}</strong> in {store}: {from} → <strong>{to}</strong>.', vars)
+                    : t('Added {n} to <strong>{tyre}</strong> in {store}: {from} → <strong>{to}</strong>.', vars);
                 const after = { qty: res.newQty, min: item ? item.min : null };
                 const st = FH.statusOf(after, lowDefault);
                 resultArea.innerHTML = `<div class="info-box ${st === 'ok' ? 'good' : 'warn'}" style="margin:0 0 22px;">
-                    <i class="fas fa-circle-check"></i>${verb} <strong>${esc(brand)} ${esc(size)}</strong> in ${esc(store)}: ${res.previousQty} → <strong>${res.newQty}</strong>.
-                    ${st === 'low' ? ' This tyre is now <strong>low on stock</strong>.' : ''}${st === 'out' ? ' This tyre is now <strong>out of stock</strong> here.' : ''}
+                    <i class="fas fa-circle-check"></i>${done}
+                    ${st === 'low' ? ' ' + t('This tyre is now <strong>low on stock</strong>.') : ''}${st === 'out' ? ' ' + t('This tyre is now <strong>out of stock</strong> here.') : ''}
                 </div>`;
                 FH.toast('Saved');
                 qtyInput.value = 1;
@@ -335,7 +344,7 @@
                 }
             } catch (err) {
                 storeSel.innerHTML = opt('', 'Failed to load');
-                FH.toast("Couldn't load stock: " + err.message, true);
+                FH.toast(t("Couldn't load stock: {msg}", { msg: err.message }), true);
             }
         }
 

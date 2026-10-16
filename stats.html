@@ -38,12 +38,13 @@
     <div class="footnote">FirstHill (pty) ltd · stats from the update history</div>
 </div>
 
+<script src="i18n.js"></script>
 <script src="common.js"></script>
 <script>
     (function () {
         const me = FH.requireLogin('stats.html');
         if (!me) return;
-        const esc = FH.esc;
+        const esc = FH.esc, T = FH.t;   // (t is used as a loop variable below)
         const DAY = FH.DAY;
 
         let items = [], rows = [], lowDefault = 4, firstEver = null;
@@ -67,9 +68,9 @@
 
         function coverText(days) {
             if (days == null) return '—';
-            if (days < 1) return 'under a day';
-            if (days > 365) return 'over a year';
-            return '~' + Math.round(days) + ' days';
+            if (days < 1) return T('under a day');
+            if (days > 365) return T('over a year');
+            return T('~{n} days', { n: Math.round(days) });
         }
 
         function dayChart(ev, days, since) {
@@ -84,14 +85,14 @@
                 if (e.d > 0) buckets[k].in += e.d; else buckets[k].out += -e.d;
             });
             const max = Math.max(1, ...buckets.map(b => Math.max(b.in, b.out)));
-            const label = t => new Date(t).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
-            return `<div class="legend"><span class="l-in">Added</span><span class="l-out">Taken out</span><span style="margin-left:auto">${weekly ? 'per week' : 'per day'}</span></div>
+            const label = t => new Date(t).toLocaleDateString(FH.locale(), { day: '2-digit', month: 'short' });
+            return `<div class="legend"><span class="l-in">Added</span><span class="l-out">Taken out</span><span style="margin-left:auto">${weekly ? T('per week') : T('per day')}</span></div>
                 <div class="daychart">${buckets.map(b => `
-                    <div class="col" title="${weekly ? 'Week of ' : ''}${label(b.t)}: +${b.in} added, −${b.out} taken out">
+                    <div class="col" title="${T(weekly ? 'Week of {date}: +{in} added, −{out} taken out' : '{date}: +{in} added, −{out} taken out', { date: label(b.t), in: b.in, out: b.out })}">
                         <div class="up"><div class="bar in" style="height:${(b.in / max * 100).toFixed(1)}%"></div></div>
                         <div class="down"><div class="bar out" style="height:${(b.out / max * 100).toFixed(1)}%"></div></div>
                     </div>`).join('')}</div>
-                <div class="chart-axis"><span>${label(buckets[0]?.t)}</span><span>${label(buckets[Math.floor(n / 2)]?.t)}</span><span>Today</span></div>`;
+                <div class="chart-axis"><span>${label(buckets[0]?.t)}</span><span>${label(buckets[Math.floor(n / 2)]?.t)}</span><span>${T('Today')}</span></div>`;
         }
 
         function render() {
@@ -101,7 +102,7 @@
             // if tracking started inside the period, rates use the tracked days only
             const trackedDays = firstEver ? Math.max(1, Math.min(days, (Date.now() - firstEver) / DAY)) : days;
 
-            document.getElementById('title').textContent = store ? `${store} stats` : 'All storerooms';
+            document.getElementById('title').textContent = store ? T('{store} stats', { store }) : T('All storerooms');
 
             const ev = rows
                 .filter(r => (!store || r.storeroom === store) && r.t && r.t.getTime() >= since);
@@ -153,7 +154,7 @@
                 x.v++; if (e.d < 0) x.out += -e.d; else x.in += e.d;
             });
             const userBars = Object.values(byUser).sort((a, b) => b.v - a.v).slice(0, 8)
-                .map(x => ({ name: x.name, v: x.v, extra: `updates · ${x.out} out, ${x.in} in` }));
+                .map(x => ({ name: x.name, v: x.v, extra: T('updates · {out} out, {in} in', { out: x.out, in: x.in }) }));
 
             // storeroom comparison (all storerooms only)
             let compare = '';
@@ -218,7 +219,7 @@
                             <td data-label="Taken out" class="num"><strong style="color:var(--red-soft)">${t.out}</strong></td>
                             <td data-label="Times" class="num">${t.outTimes}</td>
                             <td data-label="On hand" class="num">${t.stock}</td>
-                            <td data-label="Stock lasts"><span class="qty-badge ${t.cover != null && t.cover <= 7 ? 'out' : t.cover != null && t.cover <= 21 ? 'low' : ''}">${t.stock === 0 ? 'Out now' : coverText(t.cover)}</span></td>
+                            <td data-label="Stock lasts"><span class="qty-badge ${t.cover != null && t.cover <= 7 ? 'out' : t.cover != null && t.cover <= 21 ? 'low' : ''}">${t.stock === 0 ? T('Out now') : coverText(t.cover)}</span></td>
                         </tr>`).join('')}</tbody>
                     </table></div>` : '<div class="empty">Nothing was taken out in this period.</div>'}
                     <p class="hint">"Stock lasts" is how long what's on hand would last at the rate it was taken out in this period.</p>
@@ -230,8 +231,8 @@
                         ${runningOut.length ? `<div class="hbars">${runningOut.map(t => `
                             <div class="hbar">
                                 <span class="name" title="${esc(t.brand)} ${esc(t.size)}">${esc(t.brand)} ${esc(t.size)}</span>
-                                <span class="sub-line" style="margin:0">${t.stock} left · ${t.rate < 1 ? (t.rate * 7).toFixed(1) + '/week' : t.rate.toFixed(1) + '/day'}</span>
-                                <span class="qty-badge ${t.stock === 0 ? 'out' : t.cover <= 7 ? 'out' : 'low'}">${t.stock === 0 ? 'Out now' : coverText(t.cover)}</span>
+                                <span class="sub-line" style="margin:0">${T('{n} left', { n: t.stock })} · ${t.rate < 1 ? T('{n}/week', { n: (t.rate * 7).toFixed(1) }) : T('{n}/day', { n: t.rate.toFixed(1) })}</span>
+                                <span class="qty-badge ${t.stock === 0 ? 'out' : t.cover <= 7 ? 'out' : 'low'}">${t.stock === 0 ? T('Out now') : coverText(t.cover)}</span>
                             </div>`).join('')}</div>` : '<div class="empty">No fast-moving tyre is close to running out.</div>'}
                     </div>
                     <div class="panel">
@@ -239,7 +240,7 @@
                         ${slow.length ? `<div class="hbars">${slow.map(i => `
                             <div class="hbar">
                                 <span class="name" title="${esc(i.brand)} ${esc(i.size)}">${esc(i.brand)} ${esc(i.size)}</span>
-                                <span class="sub-line" style="margin:0">${store ? '' : esc(i.storeroom) + ' · '}${i.lastOut ? 'last taken ' + FH.ageText(i.lastOut) : 'never taken since tracking'}</span>
+                                <span class="sub-line" style="margin:0">${store ? '' : esc(i.storeroom) + ' · '}${i.lastOut ? T('last taken {age}', { age: FH.ageText(i.lastOut) }) : T('never taken since tracking')}</span>
                                 <span class="qty-badge idle">${i.qty}</span>
                             </div>`).join('')}</div>
                             <p class="hint">Consider moving these to a busier storeroom or running a special.</p>` : '<div class="empty">Every tyre in stock moved at least once.</div>'}
@@ -269,8 +270,8 @@
             }));
 
             document.getElementById('trackNote').textContent = firstEver
-                ? `Based on updates since ${FH.fmtDate(firstEver)}` + (trackedDays < days ? ` (history is shorter than the period, so rates use ${Math.round(trackedDays)} days)` : '')
-                : 'No updates logged yet';
+                ? T('Based on updates since {date}', { date: FH.fmtDate(firstEver) }) + (trackedDays < days ? ' ' + T('(history is shorter than the period, so rates use {n} days)', { n: Math.round(trackedDays) }) : '')
+                : T('No updates logged yet');
         }
 
         async function load() {
@@ -291,7 +292,7 @@
                 if (fromUrl && stores.includes(fromUrl)) storeSel.value = fromUrl;
                 render();
             } catch (err) {
-                content.innerHTML = `<div class="info-box"><i class="fas fa-triangle-exclamation"></i>Couldn't load stats: ${esc(err.message)}</div>`;
+                content.innerHTML = `<div class="info-box"><i class="fas fa-triangle-exclamation"></i>${T("Couldn't load stats: {msg}", { msg: esc(err.message) })}</div>`;
             }
         }
 

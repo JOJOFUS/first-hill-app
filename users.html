@@ -71,7 +71,7 @@
                 </div>
                 <button type="submit" class="btn btn-ghost" id="saveSettings" style="padding:11px 20px;"><i class="fas fa-floppy-disk"></i> Save</button>
             </form>
-            <p class="hint">This applies to every tyre in every storeroom. To set a different level for one tyre, add a column named <strong>Min</strong> to the stock sheet and type the level on that tyre's row. A Min of 0 turns alerts off for that tyre (useful for sizes you've stopped selling).</p>
+            <p class="hint" data-i18n-html="hint.min">This applies to every tyre in every storeroom. To set a different level for one tyre, add a column named <strong>Min</strong> to the stock sheet and type the level on that tyre's row. A Min of 0 turns alerts off for that tyre (useful for sizes you've stopped selling).</p>
         </div>
     </div>
 
@@ -93,18 +93,19 @@
     <div class="footnote">FirstHill (pty) ltd</div>
 </div>
 
+<script src="i18n.js"></script>
 <script src="common.js"></script>
 <script>
     (function () {
         const me = FH.requireLogin('users.html');
         if (!me) return;
-        const esc = FH.esc;
+        const esc = FH.esc, t = FH.t;
         const admin = me.role === 'admin';
         const $ = id => document.getElementById(id);
 
         if (!admin) {
             $('pageTitle').textContent = 'My account';
-            $('pageSub').textContent = `Signed in as ${me.name || me.username}.`;
+            $('pageSub').textContent = t('Signed in as {name}.', { name: me.name || me.username });
         } else {
             $('adminArea').style.display = '';
         }
@@ -157,7 +158,7 @@
                 const res = await FH.api('listUsers');
                 renderUsers(res.users || [], res.shops);
             } catch (err) {
-                $('usersBody').innerHTML = `<tr class="empty-row"><td colspan="7">Couldn't load users: ${esc(err.message)}</td></tr>`;
+                $('usersBody').innerHTML = `<tr class="empty-row"><td colspan="7">${t("Couldn't load users: {msg}", { msg: esc(err.message) })}</td></tr>`;
             }
         }
 
@@ -185,7 +186,7 @@
                     renderUsers(res.users || [], res.shops);
                     $('addForm').reset();
                     renderAddShops();
-                    FH.toast(`Added ${name || username}`);
+                    FH.toast(t('Added {name}', { name: name || username }));
                 } catch (err) { FH.toast(err.message, true); }
                 btn.disabled = false;
             });
@@ -196,17 +197,17 @@
                 const username = b.dataset.u;
                 let action, params = { username }, done;
                 if (b.dataset.act === 'revoke') {
-                    if (!confirm(`Revoke access for ${username}? They'll be signed out straight away.`)) return;
-                    action = 'setActive'; params.active = 'false'; done = `Revoked ${username}`;
+                    if (!confirm(t("Revoke access for {u}? They'll be signed out straight away.", { u: username }))) return;
+                    action = 'setActive'; params.active = 'false'; done = t('Revoked {u}', { u: username });
                 } else if (b.dataset.act === 'restore') {
-                    action = 'setActive'; params.active = 'true'; done = `Restored ${username}`;
+                    action = 'setActive'; params.active = 'true'; done = t('Restored {u}', { u: username });
                 } else if (b.dataset.act === 'role') {
-                    action = 'setRole'; params.role = b.dataset.role; done = `${username} is now ${b.dataset.role}`;
+                    action = 'setRole'; params.role = b.dataset.role; done = t(b.dataset.role === 'admin' ? '{u} is now admin' : '{u} is now staff', { u: username });
                 } else if (b.dataset.act === 'reset') {
-                    const pw = prompt(`New password for ${username} (at least 6 characters):`);
+                    const pw = prompt(t('New password for {u} (at least 6 characters):', { u: username }));
                     if (pw == null) return;
                     if (pw.length < 6) return FH.toast('Password must be at least 6 characters.', true);
-                    action = 'resetPassword'; params.password = pw; done = `Password reset for ${username}. They'll need to sign in again.`;
+                    action = 'resetPassword'; params.password = pw; done = t("Password reset for {u}. They'll need to sign in again.", { u: username });
                 }
                 b.disabled = true;
                 try {
@@ -230,7 +231,7 @@
                 try {
                     const res = await FH.api('setShops', { username, shops: shops.join(',') });
                     renderUsers(res.users || [], res.shops);
-                    FH.toast(shops.length ? `${username} can now use ${shops.join(', ')}` : `${username} has no shops now`);
+                    FH.toast(shops.length ? t('{u} can now use {shops}', { u: username, shops: shops.join(t(', ')) }) : t('{u} has no shops now', { u: username }));
                 } catch (err) {
                     FH.toast(err.message, true);
                     box.checked = !box.checked;
@@ -244,7 +245,7 @@
                 if (isNaN(v) || v < 0) return FH.toast('Enter 0 or more.', true);
                 try {
                     await FH.api('saveSettings', { lowDefault: v });
-                    FH.toast(`Low-stock alert set to ${v}`);
+                    FH.toast(t('Low-stock alert set to {n}', { n: v }));
                 } catch (err) { FH.toast(err.message, true); }
             });
 

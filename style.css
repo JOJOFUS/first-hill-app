@@ -22,7 +22,7 @@
     --bad-bg: #3a0d0d; --bad-line: #ff3b3b; --bad: #ff7070;
 }
 body {
-    font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', 'Noto Sans SC', sans-serif;
     background: var(--bg);
     color: var(--text);
     min-height: 100vh;
@@ -61,6 +61,8 @@ button { font-family: inherit; }
 }
 .nav-link:hover { background: #3d1414; border-color: #982a2a; }
 .nav-link.active { background: var(--red); border-color: #ff5e5e; color: #fff; }
+.lang-toggle { background: #1d1a33; border-color: #5a4fb0; color: #d8d3ff; }
+.lang-toggle:hover { background: #2a2550; border-color: #7a6ee0; }
 .nav-user { margin-left: auto; color: var(--muted); font-size: 0.85rem; display: inline-flex; align-items: center; gap: 6px; }
 .nav-user .role { font-size: 0.72rem; padding: 2px 8px; border-radius: 20px; background: #2b0f0f; border: 1px solid #601d1d; }
 

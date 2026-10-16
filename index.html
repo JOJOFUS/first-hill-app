@@ -65,16 +65,17 @@
             </tbody>
         </table>
     </div>
-    <p class="hint"><i class="fas fa-circle-info"></i> <strong style="color:#7bffa0">Use first</strong> marks the storeroom holding the oldest stock of that tyre. When something is low, "could move from" lists A1 first, then the shops, then other warehouses. Ages are worked out from the update history, so stock that was already on the shelf before history logging started shows as "from before tracking".</p>
+    <p class="hint" data-i18n-html="hint.stock"><i class="fas fa-circle-info"></i> <strong style="color:#7bffa0">Use first</strong> marks the storeroom holding the oldest stock of that tyre. When something is low, "could move from" lists A1 first, then the shops, then other warehouses. Ages are worked out from the update history, so stock that was already on the shelf before history logging started shows as "from before tracking".</p>
     <div class="footnote">FirstHill (pty) ltd · live sync</div>
 </div>
 
+<script src="i18n.js"></script>
 <script src="common.js"></script>
 <script>
     (function () {
         const me = FH.requireLogin('index.html');
         if (!me) return;
-        const esc = FH.esc;
+        const esc = FH.esc, t = FH.t, tp = FH.tp;
 
         let items = [];
         let lowDefault = 4;
@@ -97,7 +98,7 @@
             return i.storeroom === wh;
         }
         function scopeName() {
-            return wh === '@shop' ? 'all shops' : wh === '@warehouse' ? 'all warehouses' : wh;
+            return wh === '@shop' ? t('all shops') : wh === '@warehouse' ? t('all warehouses') : wh;
         }
 
         function enrich() {
@@ -167,21 +168,21 @@
             if (!rows.length) {
                 reorderEl.className = 'reorder clear';
                 reorderEl.removeAttribute('open');
-                reorderEl.innerHTML = `<summary><i class="fas fa-circle-check"></i> Nothing needs ordering${wh ? ' in ' + esc(scopeName()) : ''} right now</summary>`;
+                reorderEl.innerHTML = `<summary><i class="fas fa-circle-check"></i> ${wh ? t('Nothing needs ordering in {scope} right now', { scope: esc(scopeName()) }) : t('Nothing needs ordering right now')}</summary>`;
                 return;
             }
             const wasOpen = reorderEl.hasAttribute('open') || reorderEl.dataset.init !== '1';
             reorderEl.dataset.init = '1';
             reorderEl.className = 'reorder';
             reorderEl.innerHTML = `
-                <summary><i class="fas fa-truck-ramp-box"></i> ${rows.length} tyre${rows.length === 1 ? '' : 's'} to reorder${wh ? ' for ' + esc(scopeName()) : ''}
+                <summary><i class="fas fa-truck-ramp-box"></i> ${wh ? tp(rows.length, '{n} tyre to reorder for {scope}', '{n} tyres to reorder for {scope}', { scope: esc(scopeName()) }) : tp(rows.length, '{n} tyre to reorder', '{n} tyres to reorder')}
                     <i class="fas fa-chevron-down chev"></i></summary>
                 <div class="reorder-body">
                     ${rows.map(r => `<div class="reorder-item">
                         <div class="tyre">${esc(r.brand)} ${esc(r.size)}</div>
                         <div class="where">
-                            ${r.needing.map(n => `<span style="white-space:nowrap">${esc(n.storeroom)}: <strong>${n.qty}</strong>${n.qty === 0 ? ' (out)' : ` (alert at ${n.level})`}</span>`).join(' &nbsp;·&nbsp; ')}
-                            ${r.spare.length ? `<span class="spare"><i class="fas fa-right-left"></i> Could move from: ${r.spare.slice(0, 3).map(s => `<strong>${esc(s.store)}</strong> (${s.spare} spare)`).join(', ')}</span>` : ''}
+                            ${r.needing.map(n => `<span style="white-space:nowrap">${esc(n.storeroom)}: <strong>${n.qty}</strong>${n.qty === 0 ? ' ' + t('(out)') : ' ' + t('(alert at {n})', { n: n.level })}</span>`).join(' &nbsp;·&nbsp; ')}
+                            ${r.spare.length ? `<span class="spare"><i class="fas fa-right-left"></i> ${t('Could move from:')} ${r.spare.slice(0, 3).map(s => `<strong>${esc(s.store)}</strong> ${t('({n} spare)', { n: s.spare })}`).join(t(', '))}</span>` : ''}
                         </div>
                     </div>`).join('')}
                     <div class="reorder-actions">
@@ -192,9 +193,9 @@
             if (wasOpen) reorderEl.setAttribute('open', '');
 
             document.getElementById('copyOrder').addEventListener('click', async () => {
-                const text = 'Firsthill tyre order list' + (wh ? ' – ' + scopeName() : '') + ' (' + FH.fmtDate(new Date()) + ')\n\n' +
-                    rows.map(r => `${r.brand} ${r.size}: ` + r.needing.map(n => `${n.storeroom} has ${n.qty}`).join(', ') +
-                        (r.spare.length ? ` (could move from ${r.spare.slice(0, 3).map(s => s.store + ': ' + s.spare + ' spare').join(', ')})` : '')).join('\n');
+                const text = t('Firsthill tyre order list') + (wh ? ' – ' + scopeName() : '') + ' (' + FH.fmtDate(new Date()) + ')\n\n' +
+                    rows.map(r => `${r.brand} ${r.size}: ` + r.needing.map(n => t('{store} has {n}', { store: n.storeroom, n: n.qty })).join(t(', ')) +
+                        (r.spare.length ? ' ' + t('(could move from {list})', { list: r.spare.slice(0, 3).map(s => t('{store}: {n} spare', { store: s.store, n: s.spare })).join(t(', ')) }) : '')).join('\n');
                 try { await navigator.clipboard.writeText(text); FH.toast('Order list copied'); }
                 catch (e) { FH.toast('Could not copy. Select the list and copy it manually.', true); }
             });
@@ -232,9 +233,9 @@
             if (i.qty <= 0) return '<span class="date-cell">—</span>';
             let html;
             if (i.untracked > 0) {
-                html = `<span class="date-cell">From before tracking<small>${i.untracked} of ${i.qty} tyres</small></span>`;
+                html = `<span class="date-cell">${t('From before tracking')}<small>${t('{a} of {b} tyres', { a: i.untracked, b: i.qty })}</small></span>`;
             } else if (i.oldestIn) {
-                html = `<span class="date-cell">${FH.fmtDate(i.oldestIn)}<small>${FH.ageText(i.oldestIn)} · ${i.oldestQty} tyre${i.oldestQty === 1 ? '' : 's'} from this batch</small></span>`;
+                html = `<span class="date-cell">${FH.fmtDate(i.oldestIn)}<small>${FH.ageText(i.oldestIn)} · ${tp(i.oldestQty, '{n} tyre from this batch', '{n} tyres from this batch')}</small></span>`;
             } else {
                 html = '<span class="date-cell">—</span>';
             }
@@ -245,7 +246,7 @@
         function qtyCell(i) {
             const cls = i.status === 'ok' ? '' : i.status;
             let note = '';
-            if (i.status === 'low') note = `<span class="status-note">Low · alert at ${i.level}</span>`;
+            if (i.status === 'low') note = `<span class="status-note">${t('Low · alert at {n}', { n: i.level })}</span>`;
             if (i.status === 'out') note = `<span class="status-note out">Out of stock</span>`;
             return `<span class="qty-badge ${cls}">${i.qty}</span>${note}`;
         }
@@ -262,16 +263,17 @@
                 return;
             }
             const list = filtered();
-            const scopeTxt = wh ? ` in ${scopeName()}` : '';
+            const scopeTxt = wh ? t(' in {scope}', { scope: scopeName() }) : '';
             if (query || wh || statusFilter !== 'all') {
                 countNote.style.display = 'block';
-                countNote.textContent = `${list.length} line${list.length === 1 ? '' : 's'}${scopeTxt}` + (query ? ` matching "${query}"` : '');
+                countNote.textContent = tp(list.length, '{n} line', '{n} lines') + scopeTxt + (query ? t(' matching "{q}"', { q: query }) : '');
             } else countNote.style.display = 'none';
 
             if (!list.length) {
-                const msg = statusFilter === 'low' ? `No low stock${scopeTxt}.` :
-                            statusFilter === 'out' ? `Nothing out of stock${scopeTxt}.` :
-                            query ? `No matches for "${esc(query)}"${scopeTxt}.` : `No tyres${scopeTxt}.`;
+                const s = esc(scopeTxt);
+                const msg = statusFilter === 'low' ? t('No low stock{s}.', { s }) :
+                            statusFilter === 'out' ? t('Nothing out of stock{s}.', { s }) :
+                            query ? t('No matches for "{q}"{s}.', { q: esc(query), s }) : t('No tyres{s}.', { s });
                 tbody.innerHTML = `<tr class="empty-row"><td colspan="6">${msg}</td></tr>`;
                 return;
             }
@@ -295,9 +297,9 @@
                 renderWhChips();
                 render();
                 document.getElementById('syncNote').textContent =
-                    `Synced ${new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })} · low-stock alert at ${lowDefault} unless set per tyre`;
+                    t('Synced {time} · low-stock alert at {n} unless set per tyre', { time: new Date().toLocaleTimeString(FH.locale(), { hour: '2-digit', minute: '2-digit' }), n: lowDefault });
             } catch (err) {
-                tbody.innerHTML = `<tr class="empty-row"><td colspan="6"><i class="fas fa-triangle-exclamation"></i> Couldn't load stock: ${esc(err.message)}</td></tr>`;
+                tbody.innerHTML = `<tr class="empty-row"><td colspan="6"><i class="fas fa-triangle-exclamation"></i> ${t("Couldn't load stock: {msg}", { msg: esc(err.message) })}</td></tr>`;
                 document.getElementById('syncNote').textContent = 'Load failed';
             }
         }

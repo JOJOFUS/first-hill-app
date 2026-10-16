@@ -15,6 +15,81 @@ const FH = (() => {
         try { return localStorage.getItem(key); } catch (e) { return null; }
     }
 
+    // ---------- language (English / 中文) ----------
+    // Translations live in i18n.js. Static text and fixed labels are translated automatically as they
+    // appear on the page; sentences with numbers or names go through t('... {name} ...', { name }).
+    const LANG_KEY = 'fh_lang';
+    function lang() { return read(LANG_KEY) === 'zh' ? 'zh' : 'en'; }
+    function locale() { return lang() === 'zh' ? 'zh-CN' : 'en-GB'; }
+    function zh() { return (lang() === 'zh' && typeof FH_ZH !== 'undefined') ? FH_ZH : null; }
+    function fill(s, vars) {
+        return vars ? String(s).replace(/\{(\w+)\}/g, (m, k) => (k in vars ? vars[k] : m)) : s;
+    }
+    /** Translate a string. Use {placeholders} for anything that changes, e.g. t('{n} in stock', { n: 4 }). */
+    function t(s, vars) {
+        const d = zh();
+        return fill(d && d[s] != null ? d[s] : s, vars);
+    }
+    /** Pick the singular or plural English text by n, then translate. n is available as {n}. */
+    function tp(n, one, many, vars) { return t(n === 1 ? one : many, Object.assign({ n }, vars)); }
+    /** Translate a message that came back from the server (exact text first, then patterns with names/numbers). */
+    function tMsg(msg) {
+        msg = String(msg ?? '');
+        const d = zh();
+        if (!d) return msg;
+        if (d[msg] != null) return d[msg];
+        for (const [re, out] of (typeof FH_ZH_PATTERNS !== 'undefined' ? FH_ZH_PATTERNS : [])) {
+            if (re.test(msg)) return msg.replace(re, out);
+        }
+        return msg;
+    }
+    function setLang(l) { save(LANG_KEY, l === 'zh' ? 'zh' : 'en'); location.reload(); }
+    function langButtonHtml(cls = 'nav-link') {
+        return `<button type="button" class="${cls} lang-toggle" data-fh-lang title="${lang() === 'zh' ? 'Switch to English' : '切换到中文'}">
+            <i class="fas fa-language"></i> ${lang() === 'zh' ? 'English' : '中文'}</button>`;
+    }
+
+    const I18N_ATTRS = ['placeholder', 'title', 'aria-label', 'data-label', 'label'];
+    function translateTree(root) {
+        const d = zh();
+        if (!d || !root) return;
+        if (root.nodeType === 3) {
+            const v = root.nodeValue, k = v.trim();
+            if (k && d[k] != null) root.nodeValue = v.replace(k, d[k]);
+            return;
+        }
+        if (root.nodeType !== 1 || /^(SCRIPT|STYLE|TEXTAREA)$/.test(root.nodeName)) return;
+        if (root.hasAttribute('data-i18n-html') && typeof FH_ZH_HTML !== 'undefined') {
+            const html = FH_ZH_HTML[root.getAttribute('data-i18n-html')];
+            if (html) { root.innerHTML = html; root.removeAttribute('data-i18n-html'); }
+        }
+        const els = [root, ...root.querySelectorAll('*')];
+        els.forEach(el => {
+            if (el !== root && el.hasAttribute('data-i18n-html')) translateTree(el);
+            I18N_ATTRS.forEach(a => {
+                const v = el.getAttribute(a);
+                if (v && d[v.trim()] != null) el.setAttribute(a, d[v.trim()]);
+            });
+        });
+        const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+            acceptNode: n => /^(SCRIPT|STYLE|TEXTAREA)$/.test(n.parentNode.nodeName) ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT
+        });
+        const texts = [];
+        while (walker.nextNode()) texts.push(walker.currentNode);
+        texts.forEach(n => translateTree(n));
+    }
+    function startI18n() {
+        document.addEventListener('click', e => {
+            if (e.target.closest('[data-fh-lang]')) setLang(lang() === 'zh' ? 'en' : 'zh');
+        });
+        if (!zh()) return;
+        document.documentElement.lang = 'zh-CN';
+        document.title = t(document.title);
+        translateTree(document.body);
+        new MutationObserver(muts => muts.forEach(m => m.addedNodes.forEach(translateTree)))
+            .observe(document.body, { childList: true, subtree: true });
+    }
+
     function esc(s) {
         return String(s ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
     }
@@ -50,20 +125,21 @@ const FH = (() => {
         try {
             res = await fetch(FH_API_URL, { method: 'POST', body });
         } catch (e) {
-            throw new Error('Could not reach the server. Check your internet connection and try again.');
+            throw new Error(t('Could not reach the server. Check your internet connection and try again.'));
         }
-        if (!res.ok) throw new Error('Server error (HTTP ' + res.status + ').');
+        if (!res.ok) throw new Error(t('Server error (HTTP {status}).', { status: res.status }));
 
         let data;
         try { data = await res.json(); }
-        catch (e) { throw new Error('The server sent an unexpected reply. Check that the latest Apps Script version is deployed.'); }
+        catch (e) { throw new Error(t('The server sent an unexpected reply. Check that the latest Apps Script version is deployed.')); }
 
         if (data.status !== 'success') {
+            const message = data.message ? tMsg(data.message) : t('Request failed.');
             if (data.code === 'AUTH' && action !== 'login') {
                 clearSession();
-                goLogin(data.message);
+                goLogin(message);
             }
-            const err = new Error(data.message || 'Request failed.');
+            const err = new Error(message);
             err.code = data.code;
             throw err;
         }
@@ -88,6 +164,7 @@ const FH = (() => {
                 `<a href="${href}" class="nav-link ${href === activePage ? 'active' : ''}"><i class="fas ${icon}"></i> ${label}</a>`
             ).join('')}
             <span class="nav-user"><i class="fas fa-circle-user"></i> ${esc(u.name || u.username)} <span class="role">${esc(u.role)}</span></span>
+            ${langButtonHtml()}
             <button type="button" class="nav-link" id="fhLogout"><i class="fas fa-right-from-bracket"></i> Sign out</button>
         </nav>`;
         document.getElementById('fhLogout').addEventListener('click', async () => {
@@ -116,7 +193,7 @@ const FH = (() => {
             t.setAttribute('role', 'status');
             document.body.appendChild(t);
         }
-        t.innerHTML = `<i class="fas ${isError ? 'fa-circle-exclamation' : 'fa-circle-check'}" style="color:${isError ? '#ff5e5e' : '#7bffa0'}"></i>${esc(msg)}`;
+        t.innerHTML = `<i class="fas ${isError ? 'fa-circle-exclamation' : 'fa-circle-check'}" style="color:${isError ? '#ff5e5e' : '#7bffa0'}"></i>${esc(tMsg(msg))}`;
         t.classList.toggle('ok', !isError);
         t.classList.add('show');
         clearTimeout(t._timer);
@@ -131,11 +208,11 @@ const FH = (() => {
     }
     function fmtDate(v) {
         const d = toDate(v);
-        return d ? d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
+        return d ? d.toLocaleDateString(locale(), { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
     }
     function fmtDateTime(v) {
         const d = toDate(v);
-        return d ? d.toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : String(v ?? '');
+        return d ? d.toLocaleString(locale(), { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : String(v ?? '');
     }
     function daysAgo(v) {
         const d = toDate(v);
@@ -145,11 +222,11 @@ const FH = (() => {
     function ageText(v) {
         const n = daysAgo(v);
         if (n == null) return '';
-        if (n === 0) return 'today';
-        if (n === 1) return 'yesterday';
-        if (n < 60) return n + ' days ago';
-        if (n < 730) return Math.round(n / 30) + ' months ago';
-        return (n / 365).toFixed(1) + ' years ago';
+        if (n === 0) return t('today');
+        if (n === 1) return t('yesterday');
+        if (n < 60) return t('{n} days ago', { n });
+        if (n < 730) return t('{n} months ago', { n: Math.round(n / 30) });
+        return t('{n} years ago', { n: (n / 365).toFixed(1) });
     }
 
     // ---------- stock helpers ----------
@@ -228,6 +305,9 @@ const FH = (() => {
         api, esc, user, isAdmin, setSession, clearSession, requireLogin, toast,
         toDate, fmtDate, fmtDateTime, daysAgo, ageText,
         keyOf, levelOf, statusOf, oldestTs, markUseFirst, naturalSort, DAY,
-        setStores, isShop, storeNames, storeIcon, storeTag, storeOptions, sourceRank
+        setStores, isShop, storeNames, storeIcon, storeTag, storeOptions, sourceRank,
+        t, tp, tMsg, lang, locale, setLang, langButtonHtml, translateTree, startI18n
     };
 })();
+
+FH.startI18n();

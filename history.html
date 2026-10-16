@@ -50,12 +50,13 @@
     <div class="footnote">FirstHill (pty) ltd · update log</div>
 </div>
 
+<script src="i18n.js"></script>
 <script src="common.js"></script>
 <script>
     (function () {
         const me = FH.requireLogin('history.html');
         if (!me) return;
-        const esc = FH.esc;
+        const esc = FH.esc, t = FH.t;
         const PAGE = 300;
 
         let history = [];
@@ -95,7 +96,7 @@
             if (active) {
                 const outN = list.reduce((a, h) => a + Math.max(0, -(parseInt(h.delta, 10) || 0)), 0);
                 const inN = list.reduce((a, h) => a + Math.max(0, parseInt(h.delta, 10) || 0), 0);
-                countNote.textContent = `${list.length} of ${history.length} entries · ${inN} tyres added, ${outN} taken out`;
+                countNote.textContent = t('{a} of {b} entries · {in} tyres added, {out} taken out', { a: list.length, b: history.length, in: inN, out: outN });
             }
             if (!list.length) {
                 tbody.innerHTML = `<tr class="empty-row"><td colspan="7">No entries match these filters.</td></tr>`;
@@ -112,7 +113,7 @@
                     <td data-label="Size"><span class="size-tag">${esc(h.size)}</span></td>
                     <td data-label="Storeroom">${FH.storeTag(h.storeroom)}</td>
                     <td data-label="Change">${isCount
-                        ? `<span class="change-badge count" title="Already on the shelf, added to the system"><i class="fas fa-clipboard-check"></i> +${d} not on system</span>`
+                        ? `<span class="change-badge count" title="Already on the shelf, added to the system"><i class="fas fa-clipboard-check"></i> ${t('+{n} not on system', { n: d })}</span>`
                         : `<span class="change-badge ${pos ? 'pos' : 'neg'}"><i class="fas ${pos ? 'fa-arrow-down' : 'fa-arrow-up'}"></i> ${pos ? '+' + d : d}</span>`}</td>
                     <td data-label="New qty"><span class="qty-badge">${esc(h.newQty)}</span></td>
                     <td data-label="By"><span class="date-cell">${h.user ? esc(h.user) : '—'}</span></td>
@@ -120,7 +121,7 @@
             }).join('');
             if (list.length > shown) {
                 moreNote.style.display = 'block';
-                moreNote.innerHTML = `Showing ${shown} of ${list.length}. <button type="button" class="btn btn-ghost btn-small" id="moreBtn">Show more</button>`;
+                moreNote.innerHTML = `${t('Showing {a} of {b}.', { a: shown, b: list.length })} <button type="button" class="btn btn-ghost btn-small" id="moreBtn">Show more</button>`;
                 document.getElementById('moreBtn').addEventListener('click', () => { shown += PAGE; render(); });
             } else moreNote.style.display = 'none';
         }
@@ -134,7 +135,7 @@
                 storeSel.innerHTML = '<option value="">All</option>' + FH.storeOptions(stores, '');
                 render();
             } catch (err) {
-                tbody.innerHTML = `<tr class="empty-row"><td colspan="7"><i class="fas fa-triangle-exclamation"></i> Couldn't load history: ${esc(err.message)}</td></tr>`;
+                tbody.innerHTML = `<tr class="empty-row"><td colspan="7"><i class="fas fa-triangle-exclamation"></i> ${t("Couldn't load history: {msg}", { msg: esc(err.message) })}</td></tr>`;
             }
         }
 
